@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatisticsRouteImport } from './routes/statistics'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ContentLibraryRouteImport } from './routes/content-library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
@@ -19,6 +20,11 @@ import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 const StatisticsRoute = StatisticsRouteImport.update({
   id: '/statistics',
   path: '/statistics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContentLibraryRoute = ContentLibraryRouteImport.update({
@@ -50,6 +56,7 @@ const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/content-library'
+    | '/settings'
     | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/content-library'
+    | '/settings'
     | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/content-library'
+    | '/settings'
     | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContentLibraryRoute: typeof ContentLibraryRoute
+  SettingsRoute: typeof SettingsRoute
   StatisticsRoute: typeof StatisticsRoute
   GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   LetterPersonIdRoute: typeof LetterPersonIdRoute
@@ -115,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/statistics'
       fullPath: '/statistics'
       preLoaderRoute: typeof StatisticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/content-library': {
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContentLibraryRoute: ContentLibraryRoute,
+  SettingsRoute: SettingsRoute,
   StatisticsRoute: StatisticsRoute,
   GroupsGroupIdRoute: GroupsGroupIdRoute,
   LetterPersonIdRoute: LetterPersonIdRoute,
