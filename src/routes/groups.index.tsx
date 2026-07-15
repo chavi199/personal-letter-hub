@@ -221,9 +221,6 @@ function GroupsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* navigate is available for future flows (e.g. jump to group after create) */}
-      <span className="hidden">{navigate.length}</span>
     </div>
   );
 }
