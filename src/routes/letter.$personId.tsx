@@ -68,7 +68,7 @@ function LetterEditorPage() {
             <h1 className="text-2xl font-semibold tracking-tight">{person.name}</h1>
             <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
               {group && <span>{group.name}</span>}
-              <Badge variant="outline">{statusLabels[person.status]}</Badge>
+              <Badge variant="outline">{statusLabels[person.status as keyof typeof statusLabels]}</Badge>
             </div>
           </div>
         </div>
