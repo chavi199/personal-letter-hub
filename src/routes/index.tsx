@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, Mail, CheckCircle2, TrendingUp, Plus, Upload } from "lucide-react";
+import { Users, Mail, CheckCircle2, TrendingUp, Plus, ChevronLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -22,23 +22,29 @@ function DashboardPage() {
     { label: "אחוז התקדמות", value: `${progress}%`, icon: TrendingUp },
   ];
 
+  const recentGroups = [...mockGroups]
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, 5);
+
+  const dateFormatter = new Intl.DateTimeFormat("he-IL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">לוח בקרה</h1>
           <p className="text-sm text-muted-foreground">סקירה כללית של פעילות הכתיבה שלך</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 ms-1" />
-            ייבוא נתונים
-          </Button>
-          <Button size="sm">
+        <Button size="sm" asChild>
+          <Link to="/groups">
             <Plus className="h-4 w-4 ms-1" />
-            צור קבוצה
-          </Button>
-        </div>
+            צור קבוצה חדשה
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -70,27 +76,48 @@ function DashboardPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">הקבוצות שלי</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">קבוצות אחרונות</CardTitle>
+          <Link
+            to="/groups"
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            כל הקבוצות
+          </Link>
         </CardHeader>
-        <CardContent className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {mockGroups.map((g) => {
-            const people = mockPeople.filter((p) => p.groupId === g.id);
-            const done = people.filter((p) => p.status === "completed").length;
-            return (
-              <Link
-                key={g.id}
-                to="/groups/$groupId"
-                params={{ groupId: g.id }}
-                className="rounded-lg border p-4 transition-colors hover:bg-accent"
-              >
-                <div className="font-medium">{g.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {done}/{people.length} מכתבים
-                </div>
-              </Link>
-            );
-          })}
+        <CardContent>
+          {recentGroups.length === 0 ? (
+            <p className="text-sm text-muted-foreground">אין קבוצות עדיין.</p>
+          ) : (
+            <ul className="divide-y">
+              {recentGroups.map((g) => {
+                const people = mockPeople.filter((p) => p.groupId === g.id);
+                const done = people.filter((p) => p.status === "completed").length;
+                return (
+                  <li key={g.id}>
+                    <Link
+                      to="/groups/$groupId"
+                      params={{ groupId: g.id }}
+                      className="flex items-center justify-between gap-3 py-3 transition-colors hover:bg-accent/50 -mx-2 px-2 rounded-md"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{g.name}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          נוצר ב־{dateFormatter.format(new Date(g.createdAt))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+                        <span>
+                          {done}/{people.length} מכתבים
+                        </span>
+                        <ChevronLeft className="h-4 w-4" />
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>
