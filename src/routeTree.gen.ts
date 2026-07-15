@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as ContentLibraryRouteImport } from './routes/content-library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as LetterPersonIdRouteImport } from './routes/letter.$personId'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 
+const StatisticsRoute = StatisticsRouteImport.update({
+  id: '/statistics',
+  path: '/statistics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContentLibraryRoute = ContentLibraryRouteImport.update({
   id: '/content-library',
   path: '/content-library',
@@ -44,6 +50,7 @@ const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
   '/groups/': typeof GroupsIndexRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
   '/groups': typeof GroupsIndexRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
   '/groups/': typeof GroupsIndexRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/content-library'
+    | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
     | '/groups/'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/content-library'
+    | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
     | '/groups'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/content-library'
+    | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
     | '/groups/'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContentLibraryRoute: typeof ContentLibraryRoute
+  StatisticsRoute: typeof StatisticsRoute
   GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   LetterPersonIdRoute: typeof LetterPersonIdRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
@@ -97,6 +110,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/statistics': {
+      id: '/statistics'
+      path: '/statistics'
+      fullPath: '/statistics'
+      preLoaderRoute: typeof StatisticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/content-library': {
       id: '/content-library'
       path: '/content-library'
@@ -138,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContentLibraryRoute: ContentLibraryRoute,
+  StatisticsRoute: StatisticsRoute,
   GroupsGroupIdRoute: GroupsGroupIdRoute,
   LetterPersonIdRoute: LetterPersonIdRoute,
   GroupsIndexRoute: GroupsIndexRoute,
