@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockGroups, mockPeople } from "@/lib/mock-data";
 
-export const Route = createFileRoute("/groups")({
+export const Route = createFileRoute("/groups/")({
   head: () => ({
     meta: [
       { title: "קבוצות — מכתבים אישיים" },
