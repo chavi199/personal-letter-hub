@@ -37,7 +37,6 @@ export const Route = createFileRoute("/groups/")({
 });
 
 function GroupsPage() {
-  const navigate = useNavigate();
   const [groups, setGroups] = useState<Group[]>(() => [...mockGroups]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
