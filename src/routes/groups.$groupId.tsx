@@ -98,8 +98,8 @@ function GroupDetailsPage() {
                   </div>
                   <div>
                     <div className="font-medium">{p.name}</div>
-                    <Badge variant={statusVariant[p.status]} className="mt-1">
-                      {statusLabels[p.status]}
+                    <Badge variant={statusVariant[p.status as LetterStatus]} className="mt-1">
+                      {statusLabels[p.status as LetterStatus]}
                     </Badge>
                   </div>
                 </div>
