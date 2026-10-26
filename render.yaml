@@ -1,0 +1,11 @@
+# Render static site configuration
+# Replace <YOUR_GITHUB_REPO> with your repository URL when connecting in Render
+services:
+  - type: static
+    name: personal-letter-hub
+    env: static
+    # repo: https://github.com/<YOUR_ORG>/<YOUR_REPO>  # optional here; set in Render UI
+    branch: main
+    buildCommand: npm ci && npm run build
+    publishPath: dist
+    autoDeploy: true
