@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Users, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Users, Pencil, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -24,7 +24,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { mockGroups, mockPeople, type Group } from "@/lib/mock-data";
+import {
+  useGroups,
+  useCreateGroup,
+  useUpdateGroup,
+  useDeleteGroup,
+} from "@/hooks/use-groups";
+import { useAllPeople } from "@/hooks/use-people";
+import type { DbGroup } from "@/lib/supabase";
 
 export const Route = createFileRoute("/groups/")({
   head: () => ({
@@ -37,11 +44,16 @@ export const Route = createFileRoute("/groups/")({
 });
 
 function GroupsPage() {
-  const [groups, setGroups] = useState<Group[]>(() => [...mockGroups]);
+  const { data: groups = [], isLoading } = useGroups();
+  const { data: allPeople = [] } = useAllPeople();
+  const createGroup = useCreateGroup();
+  const updateGroup = useUpdateGroup();
+  const deleteGroup = useDeleteGroup();
+
   const [formOpen, setFormOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [editingGroup, setEditingGroup] = useState<DbGroup | null>(null);
   const [name, setName] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DbGroup | null>(null);
 
   const openCreate = () => {
     setEditingGroup(null);
@@ -49,40 +61,50 @@ function GroupsPage() {
     setFormOpen(true);
   };
 
-  const openEdit = (group: Group) => {
+  const openEdit = (group: DbGroup) => {
     setEditingGroup(group);
     setName(group.name);
     setFormOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
 
     if (editingGroup) {
-      setGroups((prev) =>
-        prev.map((g) => (g.id === editingGroup.id ? { ...g, name: trimmed } : g)),
+      await updateGroup.mutateAsync(
+        { id: editingGroup.id, name: trimmed },
+        {
+          onSuccess: () => toast.success("הקבוצה עודכנה"),
+          onError: () => toast.error("שגיאה בעדכון הקבוצה"),
+        },
       );
-      toast.success("הקבוצה עודכנה");
     } else {
-      const newGroup: Group = {
-        id: `g_${Date.now()}`,
-        name: trimmed,
-        createdAt: new Date().toISOString().slice(0, 10),
-      };
-      setGroups((prev) => [newGroup, ...prev]);
-      toast.success("הקבוצה נוצרה");
+      await createGroup.mutateAsync(trimmed, {
+        onSuccess: () => toast.success("הקבוצה נוצרה"),
+        onError: () => toast.error("שגיאה ביצירת הקבוצה"),
+      });
     }
     setFormOpen(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setGroups((prev) => prev.filter((g) => g.id !== deleteTarget.id));
-    toast.success("הקבוצה נמחקה");
+    await deleteGroup.mutateAsync(deleteTarget.id, {
+      onSuccess: () => toast.success("הקבוצה נמחקה"),
+      onError: () => toast.error("שגיאה במחיקת הקבוצה"),
+    });
     setDeleteTarget(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -113,7 +135,7 @@ function GroupsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((g) => {
-            const people = mockPeople.filter((p) => p.groupId === g.id);
+            const people = allPeople.filter((p) => p.group_id === g.id);
             const done = people.filter((p) => p.status === "completed").length;
             return (
               <Card key={g.id} className="flex flex-col">
@@ -122,7 +144,7 @@ function GroupsPage() {
                     <div className="min-w-0">
                       <div className="text-lg font-medium truncate">{g.name}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        נוצרה ב־{g.createdAt}
+                        נוצרה ב־{g.created_at.slice(0, 10)}
                       </div>
                     </div>
                     <Users className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -196,8 +218,19 @@ function GroupsPage() {
               >
                 ביטול
               </Button>
-              <Button type="submit" disabled={!name.trim()}>
-                {editingGroup ? "שמור" : "צור"}
+              <Button
+                type="submit"
+                disabled={
+                  !name.trim() ||
+                  createGroup.isPending ||
+                  updateGroup.isPending
+                }
+              >
+                {createGroup.isPending || updateGroup.isPending
+                  ? "שומר..."
+                  : editingGroup
+                    ? "שמור"
+                    : "צור"}
               </Button>
             </DialogFooter>
           </form>
@@ -212,12 +245,17 @@ function GroupsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>למחוק את הקבוצה?</AlertDialogTitle>
             <AlertDialogDescription>
-              הקבוצה "{deleteTarget?.name}" תוסר מהרשימה. פעולה זו אינה הפיכה.
+              הקבוצה "{deleteTarget?.name}" ומכתביה יוסרו לצמיתות.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ביטול</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>מחק</AlertDialogAction>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteGroup.isPending}
+            >
+              {deleteGroup.isPending ? "מוחק..." : "מחק"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
