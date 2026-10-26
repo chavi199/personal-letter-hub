@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContentLibraryRouteImport } from './routes/content-library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
@@ -25,6 +26,11 @@ const StatisticsRoute = StatisticsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContentLibraryRoute = ContentLibraryRouteImport.update({
@@ -56,6 +62,7 @@ const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/content-library': typeof ContentLibraryRoute
+  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/content-library'
+    | '/login'
     | '/settings'
     | '/statistics'
     | '/groups/$groupId'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/content-library'
+    | '/login'
     | '/settings'
     | '/statistics'
     | '/groups/$groupId'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/content-library'
+    | '/login'
     | '/settings'
     | '/statistics'
     | '/groups/$groupId'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContentLibraryRoute: typeof ContentLibraryRoute
+  LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   StatisticsRoute: typeof StatisticsRoute
   GroupsGroupIdRoute: typeof GroupsGroupIdRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/content-library': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContentLibraryRoute: ContentLibraryRoute,
+  LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   StatisticsRoute: StatisticsRoute,
   GroupsGroupIdRoute: GroupsGroupIdRoute,
@@ -187,3 +208,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

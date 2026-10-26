@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Link,
+  Outlet,
   createRootRouteWithContext,
+  redirect,
+  useLocation,
   useRouter,
   HeadContent,
   Scripts,
@@ -11,6 +14,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppLayout } from "../components/app-layout";
+import { supabase } from "../lib/supabase";
 
 function NotFoundComponent() {
   return (
@@ -73,6 +77,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async ({ location }) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session && location.pathname !== "/login") {
+      throw redirect({ to: "/login" })
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -122,10 +134,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const location = useLocation();
+  const isPublicRoute = location.pathname === "/login";
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppLayout />
+      {isPublicRoute ? <Outlet /> : <AppLayout />}
     </QueryClientProvider>
   );
 }
