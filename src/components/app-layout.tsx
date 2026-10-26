@@ -1,6 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 export function AppLayout() {
   return (
@@ -19,6 +20,7 @@ export function AppLayout() {
           </main>
         </div>
       </div>
+      <Toaster position="top-center" richColors />
     </SidebarProvider>
   );
 }
