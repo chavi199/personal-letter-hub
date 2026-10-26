@@ -1,7 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Loader2, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { mockGroups, mockPeople } from "@/lib/mock-data";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useGroups } from "@/hooks/use-groups";
+import { useAllPeople } from "@/hooks/use-people";
+import { exportGroupToPDF, exportGroupToWord } from "@/lib/export";
 
 export const Route = createFileRoute("/statistics")({
   head: () => ({
@@ -13,9 +23,21 @@ export const Route = createFileRoute("/statistics")({
   component: StatisticsPage,
 });
 
+
 function StatisticsPage() {
-  const total = mockPeople.length;
-  const completed = mockPeople.filter((p) => p.status === "completed").length;
+  const { data: groups = [], isLoading: loadingGroups } = useGroups();
+  const { data: allPeople = [], isLoading: loadingPeople } = useAllPeople();
+
+  if (loadingGroups || loadingPeople) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const total = allPeople.length;
+  const completed = allPeople.filter((p) => p.status === "completed").length;
   const remaining = total - completed;
   const progress = total ? Math.round((completed / total) * 100) : 0;
 
@@ -52,22 +74,43 @@ function StatisticsPage() {
           <CardTitle className="text-base">התקדמות לפי קבוצה</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {mockGroups.map((g) => {
-            const people = mockPeople.filter((p) => p.groupId === g.id);
-            const done = people.filter((p) => p.status === "completed").length;
-            const pct = people.length ? Math.round((done / people.length) * 100) : 0;
-            return (
-              <div key={g.id}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className="font-medium">{g.name}</span>
-                  <span className="text-muted-foreground">
-                    {done}/{people.length} · {pct}%
-                  </span>
+          {groups.length === 0 ? (
+            <p className="text-sm text-muted-foreground">אין קבוצות עדיין.</p>
+          ) : (
+            groups.map((g) => {
+              const people = allPeople.filter((p) => p.group_id === g.id);
+              const done = people.filter((p) => p.status === "completed").length;
+              const pct = people.length ? Math.round((done / people.length) * 100) : 0;
+              return (
+                <div key={g.id}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium">{g.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">
+                        {done}/{people.length} · {pct}%
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" title="ייצוא">
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => exportGroupToPDF(g.id, g.name)}>
+                            PDF (הדפסה)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportGroupToWord(g.id, g.name)}>
+                            Word (.docx)
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  <Progress value={pct} />
                 </div>
-                <Progress value={pct} />
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </CardContent>
       </Card>
     </div>
