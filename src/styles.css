@@ -247,11 +247,55 @@
   }
 }
 
+.write-letter-orbit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 0.55rem;
+}
+
+.write-letter-orbit__ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: orbit-spin 4.5s linear infinite;
+}
+
+.write-letter-orbit__heart {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: oklch(0.72 0.16 350);
+  transform: rotate(calc(var(--i) * 72deg)) translateY(-1.55rem)
+    rotate(calc(var(--i) * -72deg));
+  opacity: 0.85;
+  filter: drop-shadow(0 0 2px oklch(0.8 0.1 350 / 0.45));
+}
+
+.write-letter-orbit__heart:nth-child(2n) {
+  color: oklch(0.7 0.14 20);
+  font-size: 0.58rem;
+}
+
+.write-letter-orbit__heart:nth-child(3n) {
+  color: oklch(0.68 0.14 300);
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body,
   .rainbow-line,
   .rainbow-fill,
-  .motif-float {
+  .motif-float,
+  .write-letter-orbit__ring {
     animation: none !important;
   }
 }

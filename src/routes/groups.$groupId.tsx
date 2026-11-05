@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { Plus, Upload, Search, PenLine, Trash2, ArrowRight, Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -227,12 +227,16 @@ function GroupDetailsPage() {
             <ul className="divide-y">
               {filtered.map((p) => (
                 <li key={p.id} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                  <Link
+                    to="/letter/$personId"
+                    params={{ personId: p.id }}
+                    className="flex min-w-0 items-center gap-3 rounded-xl outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
                       {p.name.charAt(0)}
                     </div>
-                    <div>
-                      <div className="font-medium">{p.name}</div>
+                    <div className="min-w-0">
+                      <div className="font-medium hover:underline">{p.name}</div>
                       <Badge
                         variant={statusVariant[p.status as LetterStatus]}
                         className="mt-1"
@@ -240,14 +244,27 @@ function GroupDetailsPage() {
                         {statusLabels[p.status as LetterStatus]}
                       </Badge>
                     </div>
-                  </div>
+                  </Link>
                   <div className="flex items-center gap-1">
-                    <Button asChild variant="ghost" size="sm">
-                      <Link to="/letter/$personId" params={{ personId: p.id }}>
-                        <PenLine className="h-4 w-4 ms-1" />
-                        כתוב מכתב
-                      </Link>
-                    </Button>
+                    <div className="write-letter-orbit">
+                      <span className="write-letter-orbit__ring" aria-hidden>
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <span
+                            key={i}
+                            className="write-letter-orbit__heart"
+                            style={{ "--i": i } as CSSProperties}
+                          >
+                            ♥
+                          </span>
+                        ))}
+                      </span>
+                      <Button asChild variant="ghost" size="sm" className="relative z-[1]">
+                        <Link to="/letter/$personId" params={{ personId: p.id }}>
+                          <PenLine className="h-4 w-4 ms-1" />
+                          כתוב מכתב
+                        </Link>
+                      </Button>
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
