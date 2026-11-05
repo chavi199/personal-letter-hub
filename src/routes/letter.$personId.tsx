@@ -24,7 +24,8 @@ import { LetterVersionsPanel } from "@/components/letter-versions-panel";
 import { ExportLetterPanel } from "@/components/export-letter-panel";
 import { LetterDesignPanel } from "@/components/letter-design-panel";
 import { LetterDecor } from "@/components/letter-decor";
-import { defaultDesign, fontStack, getDesignBorderStyle, normalizeDesign, sizeStyle, type LetterDesignConfig } from "@/lib/design-themes";
+import { defaultDesign, fontStack, getDesignBorderStyle, hasLetterDesign, normalizeDesign, sizeStyle, type LetterDesignConfig } from "@/lib/design-themes";
+import { readLocalDesign, writeLocalDesign } from "@/lib/letter-design-storage";
 import type { DbGroup, DbPerson, LetterStatus } from "@/lib/supabase";
 
 const statusLabels: Record<LetterStatus, string> = {
@@ -89,10 +90,33 @@ function LetterEditorPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [designConfig, setDesignConfig] = useState<LetterDesignConfig>(normalizeDesign(defaultDesign));
+  const designReady = useRef(false);
   const aiEditor = useAiEditor();
   const { data: versions = [] } = useLetterVersions(initialPerson.id);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (designReady.current) return;
+    const stored = readLocalDesign(initialPerson.id);
+    if (stored) {
+      designReady.current = true;
+      setDesignConfig(stored);
+      return;
+    }
+    const saved = versions.find((version) => hasLetterDesign(version.design_config));
+    if (!saved?.design_config) return;
+    designReady.current = true;
+    const next = normalizeDesign(saved.design_config);
+    setDesignConfig(next);
+    writeLocalDesign(initialPerson.id, next);
+  }, [versions, initialPerson.id]);
+
+  function rememberDesign(next: LetterDesignConfig) {
+    designReady.current = true;
+    setDesignConfig(next);
+    writeLocalDesign(initialPerson.id, next);
+  }
 
   // Debounced values (500ms) — auto-save
   const debouncedLetter = useDebounce(letterContent, 500);
@@ -444,7 +468,7 @@ function LetterEditorPage() {
         personId={initialPerson.id}
         currentContent={letterContent}
         designConfig={designConfig}
-        onDesignChange={setDesignConfig}
+        onDesignChange={rememberDesign}
       />
 
       <LetterVersionsPanel
@@ -455,7 +479,7 @@ function LetterEditorPage() {
         designConfig={designConfig}
         onRestore={(content, restoredDesign) => {
           setLetterContent(content)
-          if (restoredDesign) setDesignConfig(normalizeDesign(restoredDesign))
+          if (restoredDesign) rememberDesign(normalizeDesign(restoredDesign))
         }}
       />
     </div>

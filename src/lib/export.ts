@@ -1,279 +1,186 @@
 import {
+  AlignmentType,
+  BorderStyle,
   Document,
   Packer,
-  Paragraph,
-  TextRun,
-  HeadingLevel,
   PageBreak,
-  AlignmentType,
-  TextDirection,
+  Paragraph,
+  ShadingType,
+  TextRun,
 } from "docx"
 import { fetchPeopleByGroup } from "./api/people"
+import { fetchVersionsForPeople } from "./api/letter-versions"
 import { toast } from "sonner"
-import { fontStack, sizeStyle, type LetterDesignConfig } from "./design-themes"
+import {
+  hasLetterDesign,
+  normalizeDesign,
+  type LetterDesignConfig,
+  type LetterFont,
+  type LetterSize,
+} from "./design-themes"
+import { readLocalDesign } from "./letter-design-storage"
+import { renderLetterPdf, renderLettersPdf } from "./letter-pdf"
+import type { DbLetterVersion } from "./supabase"
 
-// ---- Shared: fetch letters ----
-
-async function getLetters(groupId: string) {
-  const people = await fetchPeopleByGroup(groupId)
-  return people.filter((p) => p.letter_content.trim())
+interface DesignedLetter {
+  name: string
+  content: string
+  design?: LetterDesignConfig
 }
 
-// ---- PDF: print dialog ----
+function pickDesign(versions: DbLetterVersion[], content: string): LetterDesignConfig | undefined {
+  const withDesign = versions.filter((version) => hasLetterDesign(version.design_config))
+  const match = withDesign.find((version) => version.letter_content.trim() === content.trim())
+  const chosen = match?.design_config ?? withDesign[0]?.design_config
+  return chosen ? normalizeDesign(chosen) : undefined
+}
+
+async function getDesignedLetters(groupId: string): Promise<DesignedLetter[]> {
+  const people = await fetchPeopleByGroup(groupId)
+  const letters = people.filter((person) => person.letter_content.trim())
+  const versions = await fetchVersionsForPeople(letters.map((person) => person.id))
+  return letters.map((person) => ({
+    name: person.name,
+    content: person.letter_content,
+    design: readLocalDesign(person.id) ?? pickDesign(versions.get(person.id) ?? [], person.letter_content),
+  }))
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function designOf(design?: LetterDesignConfig): LetterDesignConfig {
+  return normalizeDesign(design)
+}
+
+function wordFont(font?: LetterFont): string {
+  if (font === "heebo") return "Heebo"
+  if (font === "assistant") return "Assistant"
+  if (font === "frank") return "Frank Ruhl Libre"
+  if (font === "secular") return "Secular One"
+  return "Rubik"
+}
+
+function wordSize(size?: LetterSize): number {
+  if (size === "sm") return 22
+  if (size === "lg") return 30
+  return 26
+}
+
+function wordAlign(design: LetterDesignConfig) {
+  if (design.align === "center") return AlignmentType.CENTER
+  if (design.align === "justify") return AlignmentType.JUSTIFIED
+  return AlignmentType.RIGHT
+}
+
+function letterParagraphs(person: DesignedLetter, withBreak: boolean): Paragraph[] {
+  const design = designOf(person.design)
+  const color = design.textColor.replace("#", "")
+  const title = design.titleColor.replace("#", "")
+  const paper = design.backgroundColor.replace("#", "")
+  const accent = (design.accentColor || design.borderColor).replace("#", "")
+  const font = wordFont(design.fontFamily)
+  const size = wordSize(design.fontSize)
+  const shading = { type: ShadingType.CLEAR, fill: paper }
+  const paragraphs = [
+    new Paragraph({
+      bidirectional: true,
+      alignment: wordAlign(design),
+      shading,
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: accent, space: 4 } },
+      children: [new TextRun({ text: person.name, bold: true, font, size: size + 6, color: title, rightToLeft: true })],
+    }),
+    new Paragraph({ shading, children: [new TextRun("")] }),
+    ...person.content.split("\n").map(
+      (line) =>
+        new Paragraph({
+          bidirectional: true,
+          alignment: wordAlign(design),
+          shading,
+          children: [new TextRun({ text: line || " ", font, size, color, rightToLeft: true })],
+        }),
+    ),
+  ]
+  if (withBreak) paragraphs.push(new Paragraph({ children: [new PageBreak()] }))
+  return paragraphs
+}
 
 export async function exportGroupToPDF(groupId: string, groupName: string) {
-  const letters = await getLetters(groupId)
-  if (letters.length === 0) {
-    toast.error("אין מכתבים לייצא בקבוצה זו")
-    return
-  }
-
-  const html = `<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>מכתבים — ${groupName}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'Arial Hebrew', Arial, sans-serif;
-      font-size: 14px;
-      direction: rtl;
-      margin: 0;
-      padding: 0;
-      color: #000;
+  const toastId = toast.loading("מכין PDF עם העיצוב...")
+  try {
+    const letters = await getDesignedLetters(groupId)
+    if (letters.length === 0) {
+      toast.error("אין מכתבים לייצא בקבוצה זו", { id: toastId })
+      return
     }
-    .letter {
-      padding: 40px 50px;
-      min-height: 100vh;
-      page-break-after: always;
-    }
-    .letter:last-child { page-break-after: auto; }
-    h2 {
-      font-size: 18px;
-      border-bottom: 1px solid #999;
-      padding-bottom: 6px;
-      margin-bottom: 20px;
-    }
-    pre {
-      white-space: pre-wrap;
-      font-family: inherit;
-      font-size: 14px;
-      line-height: 1.9;
-      margin: 0;
-    }
-    @media print {
-      body { -webkit-print-color-adjust: exact; }
-    }
-  </style>
-</head>
-<body>
-  ${letters
-    .map(
-      (p) => `
-  <div class="letter">
-    <h2>${p.name}</h2>
-    <pre>${p.letter_content}</pre>
-  </div>`,
+    const blob = await renderLettersPdf(
+      letters.map((letter) => ({
+        personName: letter.name,
+        content: letter.content,
+        design: letter.design,
+      })),
     )
-    .join("")}
-</body>
-</html>`
-
-  const win = window.open("", "_blank")
-  if (!win) {
-    toast.error("לא ניתן לפתוח חלון — אפשר חלונות קופצים בדפדפן")
-    return
+    downloadBlob(blob, `מכתבים-${groupName}.pdf`)
+    toast.success(`יוצאו ${letters.length} מכתבים`, { id: toastId })
+  } catch (error) {
+    toast.error(error instanceof Error && error.message ? error.message : "הייצוא נכשל", { id: toastId })
   }
-  win.document.write(html)
-  win.document.close()
-  win.focus()
-  setTimeout(() => win.print(), 300)
 }
 
 // ---- Word (.docx) ----
 
 export async function exportGroupToWord(groupId: string, groupName: string) {
-  const letters = await getLetters(groupId)
+  const letters = await getDesignedLetters(groupId)
   if (letters.length === 0) {
     toast.error("אין מכתבים לייצא בקבוצה זו")
     return
   }
 
-  const sections = letters.flatMap((p, i) => {
-    const paragraphs: Paragraph[] = [
-      new Paragraph({
-        text: p.name,
-        heading: HeadingLevel.HEADING_2,
-        alignment: AlignmentType.RIGHT,
-        bidirectional: true,
-      }),
-      ...p.letter_content.split("\n").map(
-        (line) =>
-          new Paragraph({
-            children: [new TextRun({ text: line })],
-            alignment: AlignmentType.RIGHT,
-            bidirectional: true,
-          }),
-      ),
-    ]
-
-    // page break between letters (not after last)
-    if (i < letters.length - 1) {
-      paragraphs.push(
-        new Paragraph({
-          children: [new PageBreak()],
-        }),
-      )
-    }
-
-    return paragraphs
-  })
-
   const doc = new Document({
     sections: [
       {
-        properties: {
-          titlePage: false,
-        },
-        children: [
-          new Paragraph({
-            text: `מכתבים — ${groupName}`,
-            heading: HeadingLevel.HEADING_1,
-            alignment: AlignmentType.RIGHT,
-            bidirectional: true,
-          }),
-          new Paragraph({ children: [new TextRun("")] }),
-          ...sections,
-        ],
+        properties: {},
+        children: letters.flatMap((letter, index) => letterParagraphs(letter, index < letters.length - 1)),
       },
     ],
   })
 
   const blob = await Packer.toBlob(doc)
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `מכתבים-${groupName}.docx`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadBlob(blob, `מכתבים-${groupName}.docx`)
   toast.success(`יוצאו ${letters.length} מכתבים`)
 }
 
 // ---- Single letter ----
 
-function buildDesignStyles(design?: LetterDesignConfig): string {
-  if (!design) return ""
-  const size = sizeStyle(design.fontSize)
-  const accent = design.accentColor || design.borderColor
-  const paper = design.backgroundColor || "#ffffff"
-  return `
-    html, body { background: ${paper}; color: ${design.textColor}; font-family: ${fontStack(design.fontFamily)}; }
-    .letter { background: ${paper}; }
-    .letter-content { text-align: ${design.align ?? "right"}; }
-    .letter-logo { max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 12px; display: block; }
-    h2 { color: ${design.titleColor}; border-bottom-color: ${accent}; }
-    pre { color: ${design.textColor}; font-size: ${size.fontSize}; line-height: ${size.lineHeight}; text-align: ${design.align ?? "right"}; }
-  `
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-}
-
-function buildPrintHtml(personName: string, content: string, design?: LetterDesignConfig): string {
-  const safeName = escapeHtml(personName)
-  const logoHtml = design?.logoUrl
-    ? `<img class="letter-logo" src="${escapeHtml(design.logoUrl)}" alt="" />`
-    : ""
-  return `<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>מכתב ל${safeName}</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700&family=Frank+Ruhl+Libre:wght@400;700&family=Heebo:wght@400;700&family=Rubik:wght@400;700&family=Secular+One&display=swap">
-  <style>
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      background: #ffffff;
-      color: #000;
-      font-family: 'Arial Hebrew', Arial, sans-serif;
-      font-size: 14px;
-      direction: rtl;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .letter {
-      padding: 18mm 20mm;
-      min-height: 100vh;
-      background: #ffffff;
-      border: none;
-    }
-    h2 { font-size: 18px; border-bottom: 1px solid #999; padding-bottom: 6px; margin: 0 0 20px; }
-    pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.9; margin: 0; }
-    @page { size: A4; margin: 0; }
-    ${buildDesignStyles(design)}
-  </style>
-</head>
-<body>
-  <div class="letter">
-    <div class="letter-content">
-      ${logoHtml}
-      <h2>${safeName}</h2>
-      <pre>${escapeHtml(content)}</pre>
-    </div>
-  </div>
-</body>
-</html>`
-}
-
-export function exportLetterToPDF(personName: string, content: string, design?: LetterDesignConfig): void {
+export async function exportLetterToPDF(personName: string, content: string, design?: LetterDesignConfig): Promise<void> {
   if (!content.trim()) { toast.error("המכתב ריק — אין מה לייצא"); return }
-  const win = window.open("", "_blank")
-  if (!win) { toast.error("לא ניתן לפתוח חלון — אפשר חלונות קופצים בדפדפן"); return }
-  win.document.write(buildPrintHtml(personName, content, design))
-  win.document.close()
-  win.focus()
-  setTimeout(() => win.print(), 300)
+  const toastId = toast.loading("מכין PDF עם העיצוב...")
+  try {
+    const blob = await renderLetterPdf(personName, content, design)
+    downloadBlob(blob, `מכתב-${personName}.pdf`)
+    toast.success("הקובץ ירד עם העיצוב", { id: toastId })
+  } catch (error) {
+    toast.error(error instanceof Error && error.message ? error.message : "הייצוא נכשל", { id: toastId })
+  }
 }
 
-export async function exportLetterToWord(personName: string, content: string): Promise<void> {
+export async function exportLetterToWord(personName: string, content: string, design?: LetterDesignConfig): Promise<void> {
   if (!content.trim()) { toast.error("המכתב ריק — אין מה לייצא"); return }
 
   const doc = new Document({
     sections: [{
       properties: {},
-      children: [
-        new Paragraph({
-          text: personName,
-          heading: HeadingLevel.HEADING_2,
-          alignment: AlignmentType.RIGHT,
-          bidirectional: true,
-        }),
-        new Paragraph({ children: [new TextRun("")] }),
-        ...content.split("\n").map(
-          (line) =>
-            new Paragraph({
-              children: [new TextRun({ text: line })],
-              alignment: AlignmentType.RIGHT,
-              bidirectional: true,
-            }),
-        ),
-      ],
+      children: letterParagraphs({ name: personName, content, design }, false),
     }],
   })
 
   const blob = await Packer.toBlob(doc)
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `מכתב-${personName}.docx`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadBlob(blob, `מכתב-${personName}.docx`)
   toast.success("מכתב יוצא בהצלחה")
 }

@@ -11,6 +11,23 @@ export async function fetchVersionsByPerson(personId: string): Promise<DbLetterV
   return data
 }
 
+export async function fetchVersionsForPeople(personIds: string[]): Promise<Map<string, DbLetterVersion[]>> {
+  const map = new Map<string, DbLetterVersion[]>()
+  if (personIds.length === 0) return map
+  const { data, error } = await supabase
+    .from("letter_versions")
+    .select("*")
+    .in("person_id", personIds)
+    .order("created_at", { ascending: false })
+  if (error) throw error
+  for (const row of data ?? []) {
+    const list = map.get(row.person_id) ?? []
+    list.push(row)
+    map.set(row.person_id, list)
+  }
+  return map
+}
+
 export async function saveVersion(
   personId: string,
   letterContent: string,

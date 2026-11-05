@@ -97,7 +97,7 @@ function StatisticsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => exportGroupToPDF(g.id, g.name)}>
-                            PDF (הדפסה)
+                            PDF
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => exportGroupToWord(g.id, g.name)}>
                             Word (.docx)

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
-import { Download, Loader2, Mail, Printer } from "lucide-react"
+import { Download, Loader2, Mail } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -140,12 +140,12 @@ export function ExportLetterPanel({ open, onClose, personName, personId, current
               variant="outline"
               onClick={() => exportLetterToPDF(personName, selectedContent, effectiveDesign)}
             >
-              <Printer className="h-4 w-4 ms-1" />
-              הדפס PDF
+              <Download className="h-4 w-4 ms-1" />
+              הורד PDF
             </Button>
             <Button
               className="flex-1"
-              onClick={() => exportLetterToWord(personName, selectedContent)}
+              onClick={() => exportLetterToWord(personName, selectedContent, effectiveDesign)}
             >
               <Download className="h-4 w-4 ms-1" />
               ייצא Word

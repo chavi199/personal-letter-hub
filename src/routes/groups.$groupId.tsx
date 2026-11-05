@@ -175,7 +175,7 @@ function GroupDetailsPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportGroupToPDF(group.id, group.name)}>
-                PDF (הדפסה)
+                PDF
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportGroupToWord(group.id, group.name)}>
                 Word (.docx)
