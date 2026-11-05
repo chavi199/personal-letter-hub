@@ -92,7 +92,6 @@ export function LetterVersionsPanel({
       parts: diffTexts(left.content, right.content),
       designChanges: summarizeDesignDiff(left.design, right.design),
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- recompute when content/versions change
   }, [compareOpen, leftKey, rightKey, currentContent, designConfig, versions])
 
   function handleSave() {

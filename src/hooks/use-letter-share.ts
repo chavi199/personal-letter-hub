@@ -11,10 +11,11 @@ export const shareKey = {
   byPerson: (personId: string) => ["letter_share_link", personId] as const,
 }
 
-export function useActiveShareLink(personId: string) {
+export function useActiveShareLink(personId: string, enabled = true) {
   return useQuery({
     queryKey: shareKey.byPerson(personId),
     queryFn: () => fetchActiveShareLink(personId),
+    enabled: Boolean(personId) && enabled,
   })
 }
 

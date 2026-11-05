@@ -38,7 +38,7 @@ function errorText(error: unknown): string {
 
 export function ExportLetterPanel({ open, onClose, personName, personId, currentContent, designConfig }: Props) {
   const { data: versions = [] } = useLetterVersions(personId)
-  const { data: shareLink, isLoading: shareLoading } = useActiveShareLink(personId)
+  const { data: shareLink, isLoading: shareLoading } = useActiveShareLink(personId, open)
   const createShare = useCreateOrRefreshShareLink(personId)
   const rotateShare = useRotateShareLink(personId)
   const revokeShare = useRevokeShareLink(personId)
