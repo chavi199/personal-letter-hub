@@ -10,7 +10,7 @@ import {
 } from "docx"
 import { fetchPeopleByGroup } from "./api/people"
 import { toast } from "sonner"
-import type { LetterDesignConfig } from "./design-themes"
+import { fontStack, sizeStyle, type LetterDesignConfig } from "./design-themes"
 
 // ---- Shared: fetch letters ----
 
@@ -175,14 +175,16 @@ function buildDesignStyles(design?: LetterDesignConfig): string {
   const bgImage = design.backgroundImageUrl
     ? `background-image: url('${design.backgroundImageUrl}'); background-size: cover; background-position: center;`
     : ""
+  const size = sizeStyle(design.fontSize)
+  const accent = design.accentColor || design.borderColor
   return `
-    body { background-color: ${design.backgroundColor}; color: ${design.textColor}; }
-    .letter { background-color: ${design.backgroundColor}; border: ${border}; position: relative; ${bgImage} }
+    body { background-color: ${design.backgroundColor}; color: ${design.textColor}; font-family: ${fontStack(design.fontFamily)}; }
+    .letter { background-color: ${design.backgroundColor}; border: ${border}; border-top: 8px solid ${accent}; position: relative; ${bgImage} }
     .letter-overlay { position: absolute; inset: 0; background-color: ${design.backgroundColor}; opacity: ${1 - (design.backgroundOpacity ?? 0.15)}; pointer-events: none; }
-    .letter-content { position: relative; }
+    .letter-content { position: relative; text-align: ${design.align ?? "right"}; }
     .letter-logo { max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 12px; display: block; }
-    h2 { color: ${design.titleColor}; border-bottom-color: ${design.borderColor !== "none" ? design.borderColor : "#999"}; }
-    pre { color: ${design.textColor}; }
+    h2 { color: ${design.titleColor}; border-bottom-color: ${accent}; }
+    pre { color: ${design.textColor}; font-size: ${size.fontSize}; line-height: ${size.lineHeight}; text-align: ${design.align ?? "right"}; }
   `
 }
 
@@ -198,6 +200,7 @@ function buildPrintHtml(personName: string, content: string, design?: LetterDesi
 <head>
   <meta charset="UTF-8">
   <title>מכתב ל${personName}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700&family=Frank+Ruhl+Libre:wght@400;700&family=Heebo:wght@400;700&family=Rubik:wght@400;700&family=Secular+One&display=swap">
   <style>
     * { box-sizing: border-box; }
     body { font-family: 'Arial Hebrew', Arial, sans-serif; font-size: 14px; direction: rtl; margin: 0; color: #000; }

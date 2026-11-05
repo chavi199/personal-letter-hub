@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { deleteVersion, fetchVersionsByPerson, saveVersion } from "@/lib/api/letter-versions"
+import {
+  deleteVersion,
+  fetchVersionsByPerson,
+  saveVersion,
+  updateVersionDesign,
+} from "@/lib/api/letter-versions"
 import type { LetterDesignConfig } from "@/lib/design-themes"
 
 export const versionsKey = {
@@ -18,6 +23,15 @@ export function useSaveVersion(personId: string) {
   return useMutation({
     mutationFn: ({ content, designConfig }: { content: string; designConfig?: LetterDesignConfig }) =>
       saveVersion(personId, content, designConfig),
+    onSuccess: () => qc.invalidateQueries({ queryKey: versionsKey.byPerson(personId) }),
+  })
+}
+
+export function useUpdateVersion(personId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, designConfig }: { id: string; designConfig: LetterDesignConfig }) =>
+      updateVersionDesign(id, designConfig),
     onSuccess: () => qc.invalidateQueries({ queryKey: versionsKey.byPerson(personId) }),
   })
 }

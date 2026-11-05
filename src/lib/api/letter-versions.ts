@@ -33,3 +33,14 @@ export async function deleteVersion(id: string): Promise<void> {
   const { error } = await supabase.from("letter_versions").delete().eq("id", id)
   if (error) throw error
 }
+
+export async function updateVersionDesign(
+  id: string,
+  designConfig: LetterDesignConfig,
+): Promise<void> {
+  const { error } = await supabase
+    .from("letter_versions")
+    .update({ design_config: designConfig })
+    .eq("id", id)
+  if (error) throw error
+}

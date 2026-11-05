@@ -23,7 +23,8 @@ import { useLetterVersions } from "@/hooks/use-letter-versions";
 import { LetterVersionsPanel } from "@/components/letter-versions-panel";
 import { ExportLetterPanel } from "@/components/export-letter-panel";
 import { LetterDesignPanel } from "@/components/letter-design-panel";
-import { defaultDesign, getDesignBorderStyle, type LetterDesignConfig } from "@/lib/design-themes";
+import { LetterDecor } from "@/components/letter-decor";
+import { defaultDesign, fontStack, getDesignBorderStyle, normalizeDesign, sizeStyle, type LetterDesignConfig } from "@/lib/design-themes";
 import type { DbGroup, DbPerson, LetterStatus } from "@/lib/supabase";
 
 const statusLabels: Record<LetterStatus, string> = {
@@ -87,7 +88,7 @@ function LetterEditorPage() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
-  const [designConfig, setDesignConfig] = useState<LetterDesignConfig>(defaultDesign);
+  const [designConfig, setDesignConfig] = useState<LetterDesignConfig>(normalizeDesign(defaultDesign));
   const aiEditor = useAiEditor();
   const { data: versions = [] } = useLetterVersions(initialPerson.id);
 
@@ -281,6 +282,7 @@ function LetterEditorPage() {
           style={{
             backgroundColor: designConfig.backgroundColor,
             border: getDesignBorderStyle(designConfig) || undefined,
+            fontFamily: fontStack(designConfig.fontFamily),
             backgroundImage: designConfig.backgroundImageUrl
               ? `url(${designConfig.backgroundImageUrl})`
               : undefined,
@@ -288,6 +290,7 @@ function LetterEditorPage() {
             backgroundPosition: "center",
           }}
         >
+          <LetterDecor design={designConfig} />
           {designConfig.backgroundImageUrl && (
             <div
               className="pointer-events-none absolute inset-0"
@@ -337,6 +340,10 @@ function LetterEditorPage() {
                 style={{
                   backgroundColor: "transparent",
                   color: designConfig.textColor,
+                  fontFamily: "inherit",
+                  fontSize: sizeStyle(designConfig.fontSize).fontSize,
+                  lineHeight: sizeStyle(designConfig.fontSize).lineHeight,
+                  textAlign: designConfig.align ?? "right",
                 }}
               />
             </CardContent>
@@ -445,9 +452,10 @@ function LetterEditorPage() {
         onClose={() => setVersionsOpen(false)}
         personId={initialPerson.id}
         currentContent={letterContent}
-        onRestore={(content, designConfig) => {
+        designConfig={designConfig}
+        onRestore={(content, restoredDesign) => {
           setLetterContent(content)
-          if (designConfig) setDesignConfig(designConfig)
+          if (restoredDesign) setDesignConfig(normalizeDesign(restoredDesign))
         }}
       />
     </div>

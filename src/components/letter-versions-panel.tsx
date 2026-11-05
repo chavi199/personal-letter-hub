@@ -1,52 +1,80 @@
 import { useState } from "react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
-import { Clock, Copy, RotateCcw, Trash2 } from "lucide-react"
+import { Clock, Copy, RotateCcw, Star, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { useLetterVersions, useSaveVersion, useDeleteVersion } from "@/hooks/use-letter-versions"
+import { LetterDecor } from "@/components/letter-decor"
+import { useLetterVersions, useSaveVersion, useDeleteVersion, useUpdateVersion } from "@/hooks/use-letter-versions"
 import { ApplyVersionSheet } from "@/components/apply-version-sheet"
 import type { DbLetterVersion } from "@/lib/supabase"
-import type { LetterDesignConfig } from "@/lib/design-themes"
+import {
+  fontStack,
+  getDesignBorderStyle,
+  hasLetterDesign,
+  normalizeDesign,
+  sizeStyle,
+  themeLabel,
+  type LetterDesignConfig,
+} from "@/lib/design-themes"
 
 interface Props {
   open: boolean
   onClose: () => void
   personId: string
   currentContent: string
+  designConfig: LetterDesignConfig
   onRestore: (content: string, designConfig?: LetterDesignConfig | null) => void
 }
 
-function getBorderStyle(config?: LetterDesignConfig | null): string {
-  if (!config || config.borderStyle === "none") return "1px solid #e5e7eb"
-  if (config.borderStyle === "double") return `4px double ${config.borderColor}`
-  if (config.borderStyle === "dashed") return `2px dashed ${config.borderColor}`
-  return `2px solid ${config.borderColor}`
-}
-
-export function LetterVersionsPanel({ open, onClose, personId, currentContent, onRestore }: Props) {
+export function LetterVersionsPanel({
+  open,
+  onClose,
+  personId,
+  currentContent,
+  designConfig,
+  onRestore,
+}: Props) {
   const { data: versions = [], isLoading } = useLetterVersions(personId)
   const saveVersion = useSaveVersion(personId)
   const deleteVersion = useDeleteVersion(personId)
+  const updateVersion = useUpdateVersion(personId)
   const [preview, setPreview] = useState<DbLetterVersion | null>(null)
   const [applyVersion, setApplyVersion] = useState<DbLetterVersion | null>(null)
+  const [versionName, setVersionName] = useState("")
+
+  const ordered = [...versions].sort((a, b) => {
+    const pin = Number(Boolean(b.design_config?.pinned)) - Number(Boolean(a.design_config?.pinned))
+    if (pin !== 0) return pin
+    return a.created_at < b.created_at ? 1 : -1
+  })
 
   function handleSave() {
     if (!currentContent.trim()) {
       toast.error("המכתב ריק — אין מה לשמור")
       return
     }
-    saveVersion.mutate({ content: currentContent }, {
-      onSuccess: () => toast.success("גרסה נשמרה"),
-      onError: () => toast.error("שגיאה בשמירה"),
-    })
+    saveVersion.mutate(
+      {
+        content: currentContent,
+        designConfig: { ...normalizeDesign(designConfig), label: versionName.trim() || undefined, pinned: false },
+      },
+      {
+        onSuccess: () => {
+          setVersionName("")
+          toast.success("גרסה נשמרה")
+        },
+        onError: () => toast.error("שגיאה בשמירה"),
+      },
+    )
   }
 
   function handleRestore(version: DbLetterVersion) {
-    onRestore(version.letter_content, version.design_config)
+    onRestore(version.letter_content, hasLetterDesign(version.design_config) ? version.design_config : null)
     setPreview(null)
     onClose()
     toast.success("גרסה שוחזרה")
@@ -62,10 +90,18 @@ export function LetterVersionsPanel({ open, onClose, personId, currentContent, o
     })
   }
 
+  function patchDesign(version: DbLetterVersion, patch: Partial<LetterDesignConfig>) {
+    const next = { ...(version.design_config ?? {}), ...patch }
+    updateVersion.mutate(
+      { id: version.id, designConfig: next as LetterDesignConfig },
+      { onError: () => toast.error("שגיאה בעדכון הגרסה") },
+    )
+  }
+
   return (
     <>
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="flex w-[400px] flex-col gap-0 p-0 sm:max-w-[400px]">
+      <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[420px]">
         <SheetHeader className="border-b p-4">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Clock className="h-4 w-4" />
@@ -73,14 +109,14 @@ export function LetterVersionsPanel({ open, onClose, personId, currentContent, o
           </SheetTitle>
         </SheetHeader>
 
-        <div className="border-b p-4">
-          <Button
-            className="w-full"
-            variant="outline"
-            onClick={handleSave}
-            disabled={saveVersion.isPending}
-          >
-            שמור עותק של הגרסה הנוכחית
+        <div className="space-y-2 border-b p-4">
+          <Input
+            value={versionName}
+            onChange={(e) => setVersionName(e.target.value)}
+            placeholder="שם לגרסה, למשל טיוטה רכה"
+          />
+          <Button className="w-full" variant="outline" onClick={handleSave} disabled={saveVersion.isPending}>
+            שמור עותק של המכתב והעיצוב
           </Button>
         </div>
 
@@ -88,33 +124,42 @@ export function LetterVersionsPanel({ open, onClose, personId, currentContent, o
           <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
             טוען...
           </div>
-        ) : versions.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-            אין גרסאות שמורות עדיין
+        ) : ordered.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+            אין גרסאות שמורות עדיין. שמירה כאן שומרת גם את הטקסט וגם את העיצוב.
           </div>
         ) : (
           <ScrollArea className="flex-1">
             <div className="space-y-1 p-2">
-              {versions.map((v) => (
+              {ordered.map((v) => {
+                const design = v.design_config
+                const title = design?.label || format(new Date(v.created_at), "d בMMMM yyyy, HH:mm", { locale: he })
+                return (
                 <div
                   key={v.id}
-                  className={`cursor-pointer rounded-md border p-3 transition-colors hover:bg-accent ${preview?.id === v.id ? "border-primary bg-accent" : ""}`}
+                  className={`cursor-pointer rounded-xl border p-3 transition-colors hover:bg-accent ${preview?.id === v.id ? "border-primary bg-accent" : ""}`}
                   onClick={() => setPreview(preview?.id === v.id ? null : v)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      {v.design_config && (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {design?.backgroundColor && (
                         <span
-                          title={`עיצוב: ${v.design_config.theme}`}
-                          className="inline-block h-2.5 w-2.5 rounded-full border border-border"
-                          style={{ backgroundColor: v.design_config.backgroundColor }}
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-border"
+                          style={{ backgroundColor: design.backgroundColor }}
                         />
                       )}
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(v.created_at), "d בMMMM yyyy, HH:mm", { locale: he })}
-                      </span>
+                      <span className="truncate text-sm font-medium">{title}</span>
                     </div>
                     <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); patchDesign(v, { pinned: !design?.pinned }) }}
+                        className={design?.pinned ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}
+                        aria-label="נעץ גרסה"
+                        title="נעץ למעלה"
+                      >
+                        <Star className={`h-3.5 w-3.5 ${design?.pinned ? "fill-current" : ""}`} />
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setApplyVersion(v) }}
@@ -134,63 +179,23 @@ export function LetterVersionsPanel({ open, onClose, personId, currentContent, o
                       </button>
                     </div>
                   </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {format(new Date(v.created_at), "d בMMMM yyyy, HH:mm", { locale: he })}
+                    {design?.theme ? ` · ${themeLabel(design.theme)}` : ""}
+                  </p>
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                     {v.letter_content.slice(0, 120) || "(מכתב ריק)"}
                   </p>
 
                   {preview?.id === v.id && (
-                    <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-                      <Separator />
-                      {v.design_config && (
-                        <p className="text-xs text-muted-foreground">
-                          ערכת עיצוב: <span className="font-medium">{v.design_config.theme}</span>
-                        </p>
-                      )}
-                      <div
-                        className="relative overflow-hidden rounded-md text-sm leading-relaxed"
-                        style={{
-                          backgroundColor: v.design_config?.backgroundColor ?? "#ffffff",
-                          color: v.design_config?.textColor ?? "#1a1a1a",
-                          border: getBorderStyle(v.design_config),
-                          backgroundImage: v.design_config?.backgroundImageUrl
-                            ? `url(${v.design_config.backgroundImageUrl})`
-                            : undefined,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                          direction: "rtl",
-                        }}
-                      >
-                        {v.design_config?.backgroundImageUrl && (
-                          <div
-                            className="pointer-events-none absolute inset-0"
-                            style={{
-                              backgroundColor: v.design_config.backgroundColor,
-                              opacity: 1 - (v.design_config.backgroundOpacity ?? 0.15),
-                            }}
-                          />
-                        )}
-                        <div
-                          className="relative max-h-[220px] overflow-y-auto p-3"
-                          style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-                        >
-                          {v.design_config?.logoUrl && (
-                            <img
-                              src={v.design_config.logoUrl}
-                              alt="לוגו"
-                              className="mb-1.5 h-6 object-contain"
-                            />
-                          )}
-                          {v.letter_content || "(מכתב ריק)"}
-                        </div>
-                      </div>
-                      <Button size="sm" className="w-full" onClick={() => handleRestore(v)}>
-                        <RotateCcw className="h-3.5 w-3.5 ms-1" />
-                        החלף במכתב הנוכחי
-                      </Button>
-                    </div>
+                    <VersionPreview
+                      version={v}
+                      onRestore={() => handleRestore(v)}
+                      onRename={(label) => patchDesign(v, { label })}
+                    />
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           </ScrollArea>
         )}
@@ -206,5 +211,70 @@ export function LetterVersionsPanel({ open, onClose, personId, currentContent, o
       />
     )}
   </>
+  )
+}
+
+function VersionPreview({
+  version,
+  onRestore,
+  onRename,
+}: {
+  version: DbLetterVersion
+  onRestore: () => void
+  onRename: (label: string) => void
+}) {
+  const design = hasLetterDesign(version.design_config) ? normalizeDesign(version.design_config) : null
+  const [name, setName] = useState(version.design_config?.label ?? "")
+
+  return (
+    <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+      <Separator />
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={() => {
+          if (name.trim() !== (version.design_config?.label ?? "")) onRename(name.trim())
+        }}
+        placeholder="שם לגרסה"
+      />
+      <div
+        className="relative overflow-hidden rounded-md text-sm leading-relaxed"
+        style={
+          design
+            ? {
+                backgroundColor: design.backgroundColor,
+                color: design.textColor,
+                border: getDesignBorderStyle(design) || "1px solid #e5e7eb",
+                backgroundImage: design.backgroundImageUrl ? `url(${design.backgroundImageUrl})` : undefined,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                direction: "rtl",
+                fontFamily: fontStack(design.fontFamily),
+                fontSize: sizeStyle(design.fontSize).fontSize,
+                textAlign: design.align,
+              }
+            : { direction: "rtl", border: "1px solid #e5e7eb" }
+        }
+      >
+        {design && <LetterDecor design={design} />}
+        {design?.backgroundImageUrl && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundColor: design.backgroundColor,
+              opacity: 1 - (design.backgroundOpacity ?? 0.15),
+            }}
+          />
+        )}
+        <div className="relative max-h-[220px] overflow-y-auto p-3" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          {design?.logoUrl && <img src={design.logoUrl} alt="לוגו" className="mb-1.5 h-6 object-contain" />}
+          {version.letter_content || "(מכתב ריק)"}
+        </div>
+      </div>
+      <Button size="sm" className="w-full" onClick={onRestore}>
+        <RotateCcw className="h-3.5 w-3.5 ms-1" />
+        החלף במכתב הנוכחי
+      </Button>
+    </div>
   )
 }

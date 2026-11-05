@@ -1,13 +1,29 @@
-import { useState } from "react"
-import { Check, ImageIcon, Loader2, Palette, Upload, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { AlignCenter, AlignJustify, AlignRight, Check, ImageIcon, Loader2, Palette, Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { THEMES, defaultDesign, type LetterDesignConfig } from "@/lib/design-themes"
+import { LetterDecor } from "@/components/letter-decor"
+import {
+  FONTS,
+  ORNAMENTS,
+  SIZES,
+  THEMES,
+  defaultDesign,
+  fontStack,
+  normalizeDesign,
+  sizeStyle,
+  type LetterAlign,
+  type LetterDesignConfig,
+  type LetterFont,
+  type LetterOrnament,
+  type LetterSize,
+} from "@/lib/design-themes"
 import { useSaveVersion } from "@/hooks/use-letter-versions"
 import { useUploadDesignAsset, useDeleteDesignAsset } from "@/hooks/use-design-assets"
 
@@ -28,7 +44,14 @@ export function LetterDesignPanel({
   designConfig,
   onDesignChange,
 }: Props) {
-  const [local, setLocal] = useState<LetterDesignConfig>(designConfig)
+  const [local, setLocal] = useState<LetterDesignConfig>(normalizeDesign(designConfig))
+  const [versionName, setVersionName] = useState("")
+  const wasOpen = useRef(false)
+
+  useEffect(() => {
+    if (open && !wasOpen.current) setLocal(normalizeDesign(designConfig))
+    wasOpen.current = open
+  }, [open, designConfig])
   const saveVersion = useSaveVersion(personId)
   const uploadAsset = useUploadDesignAsset()
   const deleteAsset = useDeleteDesignAsset()
@@ -42,7 +65,14 @@ export function LetterDesignPanel({
   function applyTheme(themeId: string) {
     const theme = THEMES.find((t) => t.id === themeId)
     if (!theme) return
-    const next = { ...theme.config, logoUrl: local.logoUrl, backgroundImageUrl: local.backgroundImageUrl, backgroundOpacity: local.backgroundOpacity }
+    const next = {
+      ...theme.config,
+      logoUrl: local.logoUrl,
+      backgroundImageUrl: local.backgroundImageUrl,
+      backgroundOpacity: local.backgroundOpacity,
+      label: local.label,
+      pinned: local.pinned,
+    }
     setLocal(next)
     onDesignChange(next)
   }
@@ -84,9 +114,12 @@ export function LetterDesignPanel({
       return
     }
     saveVersion.mutate(
-      { content: currentContent, designConfig: local },
+      { content: currentContent, designConfig: { ...local, label: versionName.trim() || local.label } },
       {
-        onSuccess: () => toast.success("עיצוב נשמר כגרסה חדשה"),
+        onSuccess: () => {
+          setVersionName("")
+          toast.success("עיצוב נשמר כגרסה חדשה")
+        },
         onError: () => toast.error("שגיאה בשמירה"),
       },
     )
@@ -105,7 +138,7 @@ export function LetterDesignPanel({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="flex w-[420px] flex-col gap-0 overflow-y-auto p-0 sm:max-w-[420px]">
+      <SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[460px]">
         <SheetHeader className="border-b p-4">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Palette className="h-4 w-4" />
@@ -118,28 +151,96 @@ export function LetterDesignPanel({
           {/* Theme selector */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">ערכת נושא</Label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {THEMES.map((theme) => (
                 <button
                   key={theme.id}
                   type="button"
-                  title={theme.name}
                   onClick={() => applyTheme(theme.id)}
-                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-md border-2 transition-all ${
+                  className={`relative flex h-14 flex-col items-start justify-end overflow-hidden rounded-xl border-2 px-2 py-1.5 text-start transition-all ${
                     local.theme === theme.id
                       ? "border-primary shadow-md"
-                      : "border-border hover:border-muted-foreground"
+                      : "border-transparent hover:border-muted-foreground/40"
                   }`}
                   style={{ backgroundColor: theme.config.backgroundColor }}
                 >
-                  <span className="text-[10px] font-medium leading-tight" style={{ color: theme.config.textColor }}>
+                  <span
+                    className="absolute inset-x-0 top-0 h-1"
+                    style={{ backgroundColor: theme.config.accentColor || theme.config.borderColor }}
+                  />
+                  <span className="text-xs font-medium" style={{ color: theme.config.titleColor }}>
                     {theme.name}
                   </span>
                   {local.theme === theme.id && (
-                    <Check className="absolute bottom-0.5 left-0.5 h-3 w-3" style={{ color: theme.config.textColor }} />
+                    <Check className="absolute end-1.5 top-2 h-3.5 w-3.5" style={{ color: theme.config.textColor }} />
                   )}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">כתיבה</Label>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">גופן</Label>
+              <Select
+                value={local.fontFamily ?? "rubik"}
+                onValueChange={(value) => update({ fontFamily: value as LetterFont, theme: "custom" })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONTS.map((font) => (
+                    <SelectItem key={font.id} value={font.id}>
+                      <span style={{ fontFamily: font.stack }}>{font.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">גודל</Label>
+                <div className="flex rounded-lg border bg-muted p-0.5">
+                  {SIZES.map((size) => (
+                    <button
+                      key={size.id}
+                      type="button"
+                      onClick={() => update({ fontSize: size.id as LetterSize, theme: "custom" })}
+                      className={`flex-1 rounded-md py-1 text-xs ${
+                        (local.fontSize ?? "md") === size.id ? "bg-background shadow-sm" : "text-muted-foreground"
+                      }`}
+                    >
+                      {size.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">יישור</Label>
+                <div className="flex rounded-lg border bg-muted p-0.5">
+                  {(
+                    [
+                      { id: "right", icon: AlignRight },
+                      { id: "center", icon: AlignCenter },
+                      { id: "justify", icon: AlignJustify },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-label={item.id}
+                      onClick={() => update({ align: item.id as LetterAlign, theme: "custom" })}
+                      className={`flex flex-1 items-center justify-center rounded-md py-1 ${
+                        (local.align ?? "right") === item.id ? "bg-background shadow-sm" : "text-muted-foreground"
+                      }`}
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -209,6 +310,26 @@ export function LetterDesignPanel({
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">קישוט</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {ORNAMENTS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => update({ ornament: item.id as LetterOrnament, theme: "custom" })}
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    (local.ornament ?? "none") === item.id
+                      ? "border-primary bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Logo */}
@@ -287,17 +408,22 @@ export function LetterDesignPanel({
           <div className="space-y-2">
             <Label className="text-sm font-medium">תצוגה מקדימה</Label>
             <div
-              className="relative min-h-[160px] overflow-hidden rounded-md p-4 text-sm leading-relaxed"
+              className="relative min-h-[160px] overflow-hidden rounded-md p-4 leading-relaxed"
               style={{
                 backgroundColor: local.backgroundColor,
                 color: local.textColor,
                 border: previewBorder,
                 direction: "rtl",
+                fontFamily: fontStack(local.fontFamily),
+                fontSize: sizeStyle(local.fontSize).fontSize,
+                lineHeight: sizeStyle(local.fontSize).lineHeight,
+                textAlign: local.align ?? "right",
                 backgroundImage: local.backgroundImageUrl ? `url(${local.backgroundImageUrl})` : undefined,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
             >
+              <LetterDecor design={local} />
               {local.backgroundImageUrl && (
                 <div
                   className="absolute inset-0"
@@ -320,7 +446,14 @@ export function LetterDesignPanel({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pb-2">
+          <div className="space-y-2 pb-2">
+            <Label className="text-xs text-muted-foreground">שם לגרסה (אופציונלי)</Label>
+            <Input
+              value={versionName}
+              onChange={(e) => setVersionName(e.target.value)}
+              placeholder="למשל: טיוטה חמה"
+            />
+          <div className="flex gap-2">
             <Button className="flex-1" onClick={handleSave} disabled={saveVersion.isPending}>
               שמור עיצוב כגרסה
             </Button>
@@ -334,6 +467,7 @@ export function LetterDesignPanel({
             >
               איפוס
             </Button>
+          </div>
           </div>
         </div>
       </SheetContent>
