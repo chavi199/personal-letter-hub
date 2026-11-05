@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
+import { SkyDecoration } from "../components/sky-decoration"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/login")({
@@ -71,9 +72,10 @@ function LoginPage() {
   return (
     <div
       dir="rtl"
-      className="flex min-h-screen items-center justify-center bg-background px-4"
+      className="flex min-h-screen items-center justify-center px-4 py-10"
     >
-      <div className="w-full max-w-sm space-y-6">
+      <div className="relative w-full max-w-sm space-y-6 overflow-hidden rounded-3xl border border-white/70 bg-card/80 p-8 shadow-soft backdrop-blur-md">
+        <SkyDecoration className="pointer-events-none mx-auto -mt-4 -mb-8 h-32 w-full" />
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">מכתבים אישיים</h1>
           <p className="mt-1 text-sm text-muted-foreground">

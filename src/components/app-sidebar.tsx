@@ -38,9 +38,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar side="right" collapsible="icon">
-      <SidebarHeader className="border-b">
+      <SidebarHeader className="border-b border-white/50">
         <div className="flex items-center gap-2 px-2 py-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <div className="rainbow-fill flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-soft">
             <PenLine className="h-4 w-4" />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">

@@ -3,6 +3,7 @@ import { Users, Mail, CheckCircle2, TrendingUp, Plus, ChevronLeft, Loader2 } fro
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { SkyDecoration } from "@/components/sky-decoration";
 import { useGroups } from "@/hooks/use-groups";
 import { useAllPeople } from "@/hooks/use-people";
 
@@ -28,10 +29,30 @@ function DashboardPage() {
   const progress = peopleCount ? Math.round((completed / peopleCount) * 100) : 0;
 
   const stats = [
-    { label: "קבוצות", value: groupsCount, icon: Users },
-    { label: "אנשים", value: peopleCount, icon: Mail },
-    { label: "מכתבים שהושלמו", value: completed, icon: CheckCircle2 },
-    { label: "אחוז התקדמות", value: `${progress}%`, icon: TrendingUp },
+    {
+      label: "קבוצות",
+      value: groupsCount,
+      icon: Users,
+      chip: "bg-[oklch(0.93_0.05_350)] text-[oklch(0.5_0.14_350)]",
+    },
+    {
+      label: "אנשים",
+      value: peopleCount,
+      icon: Mail,
+      chip: "bg-[oklch(0.93_0.05_230)] text-[oklch(0.45_0.1_240)]",
+    },
+    {
+      label: "מכתבים שהושלמו",
+      value: completed,
+      icon: CheckCircle2,
+      chip: "bg-[oklch(0.93_0.06_155)] text-[oklch(0.42_0.1_155)]",
+    },
+    {
+      label: "אחוז התקדמות",
+      value: `${progress}%`,
+      icon: TrendingUp,
+      chip: "bg-[oklch(0.94_0.07_85)] text-[oklch(0.48_0.12_70)]",
+    },
   ];
 
   const recentGroups = [...groups]
@@ -40,17 +61,20 @@ function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">לוח בקרה</h1>
-          <p className="text-sm text-muted-foreground">סקירה כללית של פעילות הכתיבה שלך</p>
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-card/80 px-6 py-5 shadow-soft backdrop-blur-md">
+        <SkyDecoration className="pointer-events-none absolute -top-6 end-0 h-44 w-64 opacity-90" />
+        <div className="relative flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">לוח בקרה</h1>
+            <p className="text-sm text-muted-foreground">סקירה כללית של פעילות הכתיבה שלך</p>
+          </div>
+          <Button size="sm" asChild>
+            <Link to="/groups">
+              <Plus className="h-4 w-4 ms-1" />
+              צור קבוצה חדשה
+            </Link>
+          </Button>
         </div>
-        <Button size="sm" asChild>
-          <Link to="/groups">
-            <Plus className="h-4 w-4 ms-1" />
-            צור קבוצה חדשה
-          </Link>
-        </Button>
       </div>
 
       {isLoading ? (
@@ -66,7 +90,9 @@ function DashboardPage() {
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {s.label}
                   </CardTitle>
-                  <s.icon className="h-4 w-4 text-muted-foreground" />
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${s.chip}`}>
+                    <s.icon className="h-4 w-4" />
+                  </span>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-semibold">{s.value}</div>

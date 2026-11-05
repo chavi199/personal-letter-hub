@@ -14,6 +14,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppLayout } from "../components/app-layout";
+import { Toaster } from "../components/ui/sonner";
 import { supabase } from "../lib/supabase";
 
 function NotFoundComponent() {
@@ -105,6 +106,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
@@ -139,7 +150,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isPublicRoute ? <Outlet /> : <AppLayout />}
+      {isPublicRoute ? (
+        <>
+          <Outlet />
+          <Toaster position="top-center" richColors />
+        </>
+      ) : (
+        <AppLayout />
+      )}
     </QueryClientProvider>
   );
 }
