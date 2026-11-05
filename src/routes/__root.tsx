@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { DirectionProvider } from "@radix-ui/react-direction";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppLayout } from "../components/app-layout";
@@ -150,14 +151,16 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isPublicRoute ? (
-        <>
-          <Outlet />
-          <Toaster position="top-center" richColors />
-        </>
-      ) : (
-        <AppLayout />
-      )}
+      <DirectionProvider dir="rtl">
+        {isPublicRoute ? (
+          <>
+            <Outlet />
+            <Toaster position="top-center" richColors />
+          </>
+        ) : (
+          <AppLayout />
+        )}
+      </DirectionProvider>
     </QueryClientProvider>
   );
 }

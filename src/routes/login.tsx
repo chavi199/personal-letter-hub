@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
+import { GentleMotifs } from "../components/gentle-motifs"
 import { SkyDecoration } from "../components/sky-decoration"
 import { toast } from "sonner"
 
@@ -72,9 +73,10 @@ function LoginPage() {
   return (
     <div
       dir="rtl"
-      className="flex min-h-screen items-center justify-center px-4 py-10"
+      className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10"
     >
-      <div className="relative w-full max-w-sm space-y-6 overflow-hidden rounded-3xl border border-white/70 bg-card/80 p-8 shadow-soft backdrop-blur-md">
+      <GentleMotifs />
+      <div className="relative z-10 w-full max-w-sm space-y-6 overflow-hidden rounded-3xl border border-white/70 bg-card/80 p-8 shadow-soft backdrop-blur-md">
         <SkyDecoration className="pointer-events-none mx-auto -mt-4 -mb-8 h-32 w-full" />
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">מכתבים אישיים</h1>
