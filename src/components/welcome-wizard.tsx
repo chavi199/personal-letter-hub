@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import {
   BookOpen,
@@ -18,7 +18,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { shouldShowWelcome, skipWelcomeThisSession } from "@/lib/onboarding"
 import { useGroups } from "@/hooks/use-groups"
 import { cn } from "@/lib/utils"
 
@@ -64,15 +63,10 @@ const steps = [
 export function WelcomeWizard() {
   const navigate = useNavigate()
   const { data: groups = [], isLoading } = useGroups()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const [step, setStep] = useState(0)
 
-  useEffect(() => {
-    setOpen(shouldShowWelcome())
-  }, [])
-
   function finish(goToGroups: boolean) {
-    skipWelcomeThisSession()
     setOpen(false)
     if (goToGroups && !isLoading && groups.length === 0) {
       navigate({ to: "/groups" })
@@ -80,12 +74,7 @@ export function WelcomeWizard() {
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next) {
-      skipWelcomeThisSession()
-      setOpen(false)
-      return
-    }
-    setOpen(true)
+    setOpen(next)
   }
 
   const current = steps[step]
