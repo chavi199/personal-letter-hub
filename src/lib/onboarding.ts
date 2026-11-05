@@ -1,25 +1,30 @@
-const DISMISSED_KEY = "letter-hub:onboarding-dismissed"
+const SESSION_SKIP_KEY = "letter-hub:welcome-skipped-session"
 const CHECKLIST_HIDDEN_KEY = "letter-hub:onboarding-checklist-hidden"
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof localStorage !== "undefined"
 }
 
-export function isOnboardingDismissed(): boolean {
-  if (!canUseStorage()) return false
+function canUseSession() {
+  return typeof window !== "undefined" && typeof sessionStorage !== "undefined"
+}
+
+/** Skip lasts for this browser tab only, so the welcome shows again next visit. */
+export function isWelcomeSkippedThisSession(): boolean {
+  if (!canUseSession()) return false
   try {
-    return localStorage.getItem(DISMISSED_KEY) === "1"
+    return sessionStorage.getItem(SESSION_SKIP_KEY) === "1"
   } catch {
     return false
   }
 }
 
-export function dismissOnboarding(): void {
-  if (!canUseStorage()) return
+export function skipWelcomeThisSession(): void {
+  if (!canUseSession()) return
   try {
-    localStorage.setItem(DISMISSED_KEY, "1")
+    sessionStorage.setItem(SESSION_SKIP_KEY, "1")
   } catch {
-    /* ignore quota / private mode */
+    /* ignore */
   }
 }
 
@@ -41,7 +46,7 @@ export function hideChecklist(): void {
   }
 }
 
-/** Welcome wizard: show only when there are no groups and user hasn't skipped. */
-export function shouldShowWelcome(groupsCount: number): boolean {
-  return groupsCount === 0 && !isOnboardingDismissed()
+/** Welcome wizard: every user, every new visit, until they skip in this tab. */
+export function shouldShowWelcome(): boolean {
+  return !isWelcomeSkippedThisSession()
 }

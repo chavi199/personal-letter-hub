@@ -79,7 +79,7 @@ export function AppSidebar() {
 
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupContent>
-            <WhatsLeft groups={groups} people={people} compact maxItems={3} />
+            <WhatsLeft groups={groups} people={people} compact />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

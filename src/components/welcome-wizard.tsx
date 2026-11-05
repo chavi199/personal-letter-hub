@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { dismissOnboarding, shouldShowWelcome } from "@/lib/onboarding"
+import { shouldShowWelcome, skipWelcomeThisSession } from "@/lib/onboarding"
 import { useGroups } from "@/hooks/use-groups"
 import { cn } from "@/lib/utils"
 
@@ -57,7 +57,7 @@ const steps = [
     icon: Palette,
     title: "מעצבים, שומרים ושולחים",
     body: "בסוף מעצבים את המכתב, שומרים, מייצאים או שולחים — והכול נשאר מסודר.",
-    cta: "צור קבוצה ראשונה",
+    cta: "סיום",
   },
 ] as const
 
@@ -68,21 +68,20 @@ export function WelcomeWizard() {
   const [step, setStep] = useState(0)
 
   useEffect(() => {
-    if (isLoading) return
-    setOpen(shouldShowWelcome(groups.length))
-  }, [groups.length, isLoading])
+    setOpen(shouldShowWelcome())
+  }, [])
 
   function finish(goToGroups: boolean) {
-    dismissOnboarding()
+    skipWelcomeThisSession()
     setOpen(false)
-    if (goToGroups) {
+    if (goToGroups && !isLoading && groups.length === 0) {
       navigate({ to: "/groups" })
     }
   }
 
   function handleOpenChange(next: boolean) {
     if (!next) {
-      dismissOnboarding()
+      skipWelcomeThisSession()
       setOpen(false)
       return
     }
@@ -92,6 +91,8 @@ export function WelcomeWizard() {
   const current = steps[step]
   const Icon = current.icon
   const isLast = step === steps.length - 1
+  const cta =
+    isLast && !isLoading && groups.length === 0 ? "צור קבוצה ראשונה" : current.cta
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -160,7 +161,7 @@ export function WelcomeWizard() {
                 else setStep((s) => s + 1)
               }}
             >
-              {current.cta}
+              {cta}
               {!isLast && <ChevronLeft className="h-4 w-4 me-1" />}
             </Button>
           </div>
