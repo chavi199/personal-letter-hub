@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { AlignCenter, AlignJustify, AlignRight, Check, ImageIcon, Loader2, Palette, Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -140,17 +140,59 @@ export function LetterDesignPanel({
 
   const bgOpacity = local.backgroundOpacity ?? 0.15
 
+  const preview = (
+    <div
+      className="relative mx-auto min-h-[72vh] w-full max-w-3xl overflow-hidden rounded-xl p-8 shadow-soft leading-relaxed sm:p-12"
+      style={{
+        backgroundColor: local.backgroundColor,
+        color: local.textColor,
+        border: previewBorder,
+        direction: "rtl",
+        fontFamily: fontStack(local.fontFamily),
+        fontSize: sizeStyle(local.fontSize).fontSize,
+        lineHeight: sizeStyle(local.fontSize).lineHeight,
+        textAlign: local.align ?? "right",
+        backgroundImage: local.backgroundImageUrl ? `url(${local.backgroundImageUrl})` : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <LetterDecor design={local} />
+      {local.backgroundImageUrl && (
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: local.backgroundColor, opacity: 1 - bgOpacity }}
+        />
+      )}
+      <div className="relative">
+        {local.logoUrl && (
+          <img src={local.logoUrl} alt="לוגו" className="mb-4 h-12 object-contain" />
+        )}
+        <p className="mb-4 text-xl font-semibold" style={{ color: local.titleColor }}>
+          שלום [שם],
+        </p>
+        <p className="whitespace-pre-wrap break-words">
+          {currentContent || "תוכן המכתב יופיע כאן..."}
+        </p>
+      </div>
+    </div>
+  )
+
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[460px]">
-        <SheetHeader className="border-b p-4">
-          <SheetTitle className="flex items-center gap-2 text-base">
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="flex h-[94vh] w-[96vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl">
+        <DialogHeader className="border-b px-5 py-4 pe-12">
+          <DialogTitle className="flex items-center gap-2 text-base">
             <Palette className="h-4 w-4" />
             עיצוב מכתב
-          </SheetTitle>
-        </SheetHeader>
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="flex flex-1 flex-col gap-6 p-4">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-h-[48vh] overflow-y-auto bg-muted/50 p-4 sm:p-8">
+            {preview}
+          </div>
+          <div className="flex min-h-0 flex-col gap-6 overflow-y-auto border-t p-4 lg:border-s lg:border-t-0">
 
           {/* Theme selector */}
           <ThemeGrid title="ערכת נושא" themes={THEMES.filter((theme) => theme.kind !== "occasion")} selected={local.theme} onPick={applyTheme} />
@@ -409,47 +451,6 @@ export function LetterDesignPanel({
             )}
           </div>
 
-          {/* Live preview */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">תצוגה מקדימה</Label>
-            <div
-              className="relative min-h-[220px] overflow-hidden rounded-md p-4 leading-relaxed"
-              style={{
-                backgroundColor: local.backgroundColor,
-                color: local.textColor,
-                border: previewBorder,
-                direction: "rtl",
-                fontFamily: fontStack(local.fontFamily),
-                fontSize: sizeStyle(local.fontSize).fontSize,
-                lineHeight: sizeStyle(local.fontSize).lineHeight,
-                textAlign: local.align ?? "right",
-                backgroundImage: local.backgroundImageUrl ? `url(${local.backgroundImageUrl})` : undefined,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              <LetterDecor design={local} />
-              {local.backgroundImageUrl && (
-                <div
-                  className="absolute inset-0"
-                  style={{ backgroundColor: local.backgroundColor, opacity: 1 - bgOpacity }}
-                />
-              )}
-              <div className="relative">
-                {local.logoUrl && (
-                  <img src={local.logoUrl} alt="לוגו" className="mb-2 h-8 object-contain" />
-                )}
-                <p className="mb-2 font-semibold" style={{ color: local.titleColor }}>
-                  שלום [שם],
-                </p>
-                <p className="whitespace-pre-wrap break-words">
-                  {currentContent.slice(0, 200) || "תוכן המכתב יופיע כאן..."}
-                  {currentContent.length > 200 && "..."}
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Actions */}
           <div className="space-y-2 pb-2">
             <Label className="text-xs text-muted-foreground">שם לגרסה (אופציונלי)</Label>
@@ -474,9 +475,10 @@ export function LetterDesignPanel({
             </Button>
           </div>
           </div>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }
 
