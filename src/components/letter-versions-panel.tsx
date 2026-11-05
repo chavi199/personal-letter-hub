@@ -156,6 +156,9 @@ export function LetterVersionsPanel({
             <Clock className="h-4 w-4" />
             גרסאות שמורות
           </SheetTitle>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            כתיבה → שמירת גרסה → שיפור. אפשר לנסות ניסוחים ולחזור לגרסה קודמת בלי פחד.
+          </p>
         </SheetHeader>
 
         <div className="space-y-2 border-b p-4">
@@ -180,8 +183,11 @@ export function LetterVersionsPanel({
             טוען...
           </div>
         ) : ordered.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-            אין גרסאות שמורות עדיין. שמירה כאן שומרת גם את הטקסט וגם את העיצוב.
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+            <p className="text-sm font-medium">עדיין אין גרסאות שמורות</p>
+            <p className="max-w-xs text-sm text-muted-foreground leading-relaxed">
+              שמרו גרסה כדי לשמור ניסוח ולחזור אליו אחר כך. כל שמירה כוללת גם את הטקסט וגם את העיצוב.
+            </p>
           </div>
         ) : (
           <ScrollArea className="flex-1">

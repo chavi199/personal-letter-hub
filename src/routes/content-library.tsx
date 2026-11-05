@@ -8,6 +8,7 @@ import {
   Pencil,
   Loader2,
   Undo2,
+  Library,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -256,7 +258,7 @@ function ContentLibraryPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">ספריית תוכן</h1>
           <p className="text-sm text-muted-foreground">
-            מאגר הפתיחות, המחמאות והסיומים שלך
+            משפטים מוכנים שאפשר להכניס למכתב בלחיצה — חוסך זמן ושומר על טון אחיד
           </p>
         </div>
         <div className="flex gap-2">
@@ -347,9 +349,24 @@ function ContentLibraryPage() {
               (type) => (
                 <TabsContent key={type} value={type} className="mt-4">
                   {filtered.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-muted-foreground">
-                      {search ? "לא נמצאו תוצאות" : `אין ${typeLabels[type]} עדיין.`}
-                    </div>
+                    search ? (
+                      <div className="py-8 text-center text-sm text-muted-foreground">
+                        לא נמצאו תוצאות
+                      </div>
+                    ) : (
+                      <EmptyState
+                        compact
+                        icon={Library}
+                        title={`עדיין אין ${typeLabels[type]}`}
+                        description="כדאי למלא כאן כמה משפטים טובים — ואז בעורך המכתב אפשר להוסיף אותם בלחיצה במקום להתחיל מאפס."
+                        action={
+                          <Button size="sm" onClick={openAdd}>
+                            <Plus className="h-4 w-4 ms-1" />
+                            הוסף {typeLabels[type]}
+                          </Button>
+                        }
+                      />
+                    )
                   ) : (
                     <ul className="divide-y rounded-md border">
                       {filtered.map((item) => (

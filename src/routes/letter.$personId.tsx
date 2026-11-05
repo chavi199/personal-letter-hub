@@ -10,6 +10,7 @@ import {
   Mail,
   Palette,
   Pause,
+  PenLine,
   Play,
   Printer,
   RotateCcw,
@@ -340,6 +341,22 @@ function LetterEditorPage() {
               )}
             </div>
           </div>
+          {!letterContent.trim() && aiEditor.state !== "review" && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                עדיין אין מכתב — כתבו כאן ישירות, או בחרו פתיחה/מחמאה מהמאגר בצד. אפשר גם לרשום הערות בכרטיס האישי לפני שמתחילים.
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => textareaRef.current?.focus()}
+              >
+                <PenLine className="h-3.5 w-3.5 ms-1" />
+                התחל לכתוב
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Textarea
@@ -347,7 +364,7 @@ function LetterEditorPage() {
             readOnly={aiEditor.state === "review"}
             value={letterContent}
             onChange={(e) => setLetterContent(e.target.value)}
-            placeholder="בחר פריטים ממאגר התוכן או התחל לכתוב..."
+            placeholder="התחילו לכתוב כאן — או בחרו משפט מהמאגר בצד..."
             className={`write-presence-caret min-h-[500px] resize-none leading-relaxed${aiEditor.state === "review" ? " bg-muted/40" : ""}`}
             style={{
               backgroundColor: "transparent",
@@ -418,8 +435,10 @@ function LetterEditorPage() {
             </Link>
           )}
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{initialPerson.name}</h1>
-            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              מכתב ל{initialPerson.name}
+            </h1>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span>{group.name}</span>
               <Badge
                 variant="outline"
@@ -427,6 +446,7 @@ function LetterEditorPage() {
               >
                 {statusLabels[status]}
               </Badge>
+              <span className="text-xs">הערות אישיות → כתיבה → גרסה → עיצוב</span>
             </div>
           </div>
         </div>
@@ -470,9 +490,18 @@ function LetterEditorPage() {
           </Button>
 
           {!focusMode && (
-            <Button variant="outline" size="sm" onClick={() => setVersionsOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setVersionsOpen(true)}
+              title={
+                versions.length === 0
+                  ? "שמרו גרסה כדי לשמור ניסוח ולחזור אליו אחר כך"
+                  : "צפו ושמרו גרסאות של המכתב"
+              }
+            >
               <Clock className="h-4 w-4 ms-1" />
-              גרסאות{versions.length > 0 && ` (${versions.length})`}
+              גרסאות{versions.length > 0 ? ` (${versions.length})` : ""}
             </Button>
           )}
 
@@ -599,7 +628,7 @@ function LetterEditorPage() {
               <CardHeader>
                 <CardTitle className="text-sm">כרטיס אישי</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  המידע אינו מיוצא ואינו מופיע במכתב.
+                  הערות ורעיונות לעצמך בלבד — לא מופיעים במכתב ולא מיוצאים.
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">

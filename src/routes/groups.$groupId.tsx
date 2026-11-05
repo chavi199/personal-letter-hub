@@ -1,11 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useRef, useState, type CSSProperties } from "react";
-import { Plus, Upload, Search, PenLine, Trash2, ArrowRight, Loader2, Download } from "lucide-react";
+import { Plus, Upload, Search, PenLine, Trash2, ArrowRight, Loader2, Download, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,7 +153,9 @@ function GroupDetailsPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{group.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {people.length} אנשים בקבוצה
+              {people.length === 0
+                ? "הוסיפו אנשים לקבוצה — לכל אחד יהיה מכתב משלו"
+                : `${people.length} אנשים בקבוצה · לכל אחד מכתב והערות אישיות`}
             </p>
           </div>
         </div>
@@ -220,9 +223,26 @@ function GroupDetailsPage() {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">
-              {search ? "לא נמצאו תוצאות" : "אין אנשים בקבוצה. הוסף את הראשון!"}
-            </div>
+            search ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                לא נמצאו תוצאות
+              </div>
+            ) : (
+              <div className="p-4">
+                <EmptyState
+                  compact
+                  icon={UserPlus}
+                  title="הקבוצה ריקה עדיין"
+                  description="הוסיפו אדם אחד — ואז אפשר לכתוב לו מכתב אישי, לשמור הערות ולשמור גרסאות של הניסוח."
+                  action={
+                    <Button size="sm" onClick={() => setAddOpen(true)}>
+                      <Plus className="h-4 w-4 ms-1" />
+                      הוסף אדם ראשון
+                    </Button>
+                  }
+                />
+              </div>
+            )
           ) : (
             <ul className="divide-y">
               {filtered.map((p) => (

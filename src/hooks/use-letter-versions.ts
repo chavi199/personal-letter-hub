@@ -9,6 +9,7 @@ import type { LetterDesignConfig } from "@/lib/design-themes"
 
 export const versionsKey = {
   byPerson: (personId: string) => ["letter_versions", personId] as const,
+  any: ["letter_versions", "any"] as const,
 }
 
 export function useLetterVersions(personId: string) {
@@ -23,7 +24,10 @@ export function useSaveVersion(personId: string) {
   return useMutation({
     mutationFn: ({ content, designConfig }: { content: string; designConfig?: LetterDesignConfig }) =>
       saveVersion(personId, content, designConfig),
-    onSuccess: () => qc.invalidateQueries({ queryKey: versionsKey.byPerson(personId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: versionsKey.byPerson(personId) })
+      qc.invalidateQueries({ queryKey: versionsKey.any })
+    },
   })
 }
 
@@ -40,6 +44,9 @@ export function useDeleteVersion(personId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => deleteVersion(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: versionsKey.byPerson(personId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: versionsKey.byPerson(personId) })
+      qc.invalidateQueries({ queryKey: versionsKey.any })
+    },
   })
 }

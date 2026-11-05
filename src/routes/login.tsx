@@ -81,7 +81,7 @@ function LoginPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">מכתבים אישיים</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            מערכת לניהול וכתיבת מכתבים אישיים
+            קבוצות, אנשים ומכתבים אישיים — מסודרים במקום אחד
           </p>
         </div>
 

@@ -11,6 +11,16 @@ export async function fetchVersionsByPerson(personId: string): Promise<DbLetterV
   return data
 }
 
+/** Lightweight check for onboarding checklist — any saved version for the current user. */
+export async function hasAnyLetterVersion(): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("letter_versions")
+    .select("id", { count: "exact", head: true })
+    .limit(1)
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
 export async function fetchVersionsForPeople(personIds: string[]): Promise<Map<string, DbLetterVersion[]>> {
   const map = new Map<string, DbLetterVersion[]>()
   if (personIds.length === 0) return map

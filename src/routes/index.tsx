@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SkyDecoration } from "@/components/sky-decoration";
 import { WhatsLeft } from "@/components/whats-left";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { EmptyState } from "@/components/empty-state";
 import { useGroups } from "@/hooks/use-groups";
 import { useAllPeople } from "@/hooks/use-people";
 
@@ -67,7 +69,9 @@ function DashboardPage() {
         <div className="relative flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">לוח בקרה</h1>
-            <p className="text-sm text-muted-foreground">סקירה כללית של פעילות הכתיבה שלך</p>
+            <p className="text-sm text-muted-foreground">
+              כאן רואים איפה עומדים: קבוצות, אנשים ומכתבים שנותרו לכתוב
+            </p>
           </div>
           <Button size="sm" asChild>
             <Link to="/groups">
@@ -84,83 +88,105 @@ function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((s) => (
-              <Card key={s.label}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {s.label}
-                  </CardTitle>
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${s.chip}`}>
-                    <s.icon className="h-4 w-4" />
-                  </span>
+          <OnboardingChecklist groups={groups} people={allPeople} />
+
+          {groupsCount === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="עדיין אין קבוצות"
+              description="קבוצה היא נקודת ההתחלה: משפחה, חברים מהעבודה או כיתה. אחרי שיוצרים קבוצה — מוסיפים אנשים וכותבים לכל אחד מכתב אישי."
+              action={
+                <Button size="sm" asChild>
+                  <Link to="/groups">
+                    <Plus className="h-4 w-4 ms-1" />
+                    צור קבוצה ראשונה
+                  </Link>
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {stats.map((s) => (
+                  <Card key={s.label}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {s.label}
+                      </CardTitle>
+                      <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${s.chip}`}>
+                        <s.icon className="h-4 w-4" />
+                      </span>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-semibold">{s.value}</div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">התקדמות כללית</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    כמה מכתבים כבר הושלמו מתוך כל האנשים
+                  </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-semibold">{s.value}</div>
+                  <Progress value={progress} />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {completed} מתוך {peopleCount} מכתבים הושלמו
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">התקדמות כללית</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Progress value={progress} />
-              <p className="mt-2 text-sm text-muted-foreground">
-                {completed} מתוך {peopleCount} מכתבים הושלמו
-              </p>
-            </CardContent>
-          </Card>
+              <WhatsLeft groups={groups} people={allPeople} />
 
-          <WhatsLeft groups={groups} people={allPeople} />
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">קבוצות אחרונות</CardTitle>
-              <Link
-                to="/groups"
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                כל הקבוצות
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {recentGroups.length === 0 ? (
-                <p className="text-sm text-muted-foreground">אין קבוצות עדיין. התחל ביצירת קבוצה ראשונה!</p>
-              ) : (
-                <ul className="divide-y">
-                  {recentGroups.map((g) => {
-                    const people = allPeople.filter((p) => p.group_id === g.id);
-                    const done = people.filter((p) => p.status === "completed").length;
-                    return (
-                      <li key={g.id}>
-                        <Link
-                          to="/groups/$groupId"
-                          params={{ groupId: g.id }}
-                          className="flex items-center justify-between gap-3 py-3 transition-colors hover:bg-accent/50 -mx-2 px-2 rounded-md"
-                        >
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">{g.name}</div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
-                              נוצר ב־{dateFormatter.format(new Date(g.created_at))}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">קבוצות אחרונות</CardTitle>
+                    <p className="text-xs text-muted-foreground">כניסה מהירה לקבוצות שבהן כותבים עכשיו</p>
+                  </div>
+                  <Link
+                    to="/groups"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    כל הקבוצות
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  <ul className="divide-y">
+                    {recentGroups.map((g) => {
+                      const people = allPeople.filter((p) => p.group_id === g.id);
+                      const done = people.filter((p) => p.status === "completed").length;
+                      return (
+                        <li key={g.id}>
+                          <Link
+                            to="/groups/$groupId"
+                            params={{ groupId: g.id }}
+                            className="flex items-center justify-between gap-3 py-3 transition-colors hover:bg-accent/50 -mx-2 px-2 rounded-md"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{g.name}</div>
+                              <div className="mt-0.5 text-xs text-muted-foreground">
+                                נוצר ב־{dateFormatter.format(new Date(g.created_at))}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
-                            <span>
-                              {done}/{people.length} מכתבים
-                            </span>
-                            <ChevronLeft className="h-4 w-4" />
-                          </div>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+                              <span>
+                                {done}/{people.length} מכתבים
+                              </span>
+                              <ChevronLeft className="h-4 w-4" />
+                            </div>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>

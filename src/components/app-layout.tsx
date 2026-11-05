@@ -6,6 +6,7 @@ import { AmbientSky } from "@/components/sky-decoration";
 import { PageTransition } from "@/components/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { GlobalSearch } from "@/components/global-search";
+import { WelcomeWizard } from "@/components/welcome-wizard";
 import { Toaster } from "@/components/ui/sonner";
 
 export function AppLayout() {
@@ -34,6 +35,7 @@ export function AppLayout() {
           </main>
         </div>
       </div>
+      <WelcomeWizard />
       <Toaster position="top-center" richColors />
     </SidebarProvider>
   );

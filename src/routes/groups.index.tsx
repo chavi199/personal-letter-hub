@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Plus, Users, Pencil, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -111,7 +112,9 @@ function GroupsPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">קבוצות</h1>
-          <p className="text-sm text-muted-foreground">כל הקבוצות שלך במקום אחד</p>
+          <p className="text-sm text-muted-foreground">
+            קבוצה → אנשים → מכתבים. כאן מתחילים את המסלול
+          </p>
         </div>
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 ms-1" />
@@ -120,18 +123,17 @@ function GroupsPage() {
       </div>
 
       {groups.length === 0 ? (
-        <Card>
-          <CardContent className="p-10 text-center">
-            <Users className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              עדיין אין קבוצות. צור את הקבוצה הראשונה שלך.
-            </p>
-            <Button className="mt-4" size="sm" onClick={openCreate}>
+        <EmptyState
+          icon={Users}
+          title="הקבוצה הראשונה מחכה לך"
+          description="בחרו שם שמרגיש נכון — למשל משפחה, חברים מהעבודה או כיתה. אחרי זה מוסיפים אנשים וכותבים לכל אחד מכתב אישי."
+          action={
+            <Button size="sm" onClick={openCreate}>
               <Plus className="h-4 w-4 ms-1" />
-              צור קבוצה חדשה
+              צור קבוצה ראשונה
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((g) => {
