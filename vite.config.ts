@@ -12,4 +12,6 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Vercel builds this app. Lovable's own sandbox still forces its Cloudflare output.
+  nitro: { preset: "vercel" },
 });

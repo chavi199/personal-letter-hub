@@ -10,7 +10,7 @@ import {
 } from "docx"
 import { fetchPeopleByGroup } from "./api/people"
 import { toast } from "sonner"
-import { fontStack, paperBackground, sizeStyle, type LetterDesignConfig } from "./design-themes"
+import { fontStack, sizeStyle, type LetterDesignConfig } from "./design-themes"
 
 // ---- Shared: fetch letters ----
 
@@ -164,60 +164,68 @@ export async function exportGroupToWord(groupId: string, groupName: string) {
 
 function buildDesignStyles(design?: LetterDesignConfig): string {
   if (!design) return ""
-  const border =
-    design.borderStyle === "none"
-      ? "none"
-      : design.borderStyle === "double"
-        ? `4px double ${design.borderColor}`
-        : design.borderStyle === "dashed"
-          ? `2px dashed ${design.borderColor}`
-          : `2px solid ${design.borderColor}`
-  const bgImage = design.backgroundImageUrl
-    ? `background-image: url('${design.backgroundImageUrl}'); background-size: cover; background-position: center;`
-    : `background: ${paperBackground(design)};`
   const size = sizeStyle(design.fontSize)
   const accent = design.accentColor || design.borderColor
+  const paper = design.backgroundColor || "#ffffff"
   return `
-    body { background-color: ${design.backgroundColor}; color: ${design.textColor}; font-family: ${fontStack(design.fontFamily)}; }
-    .letter { background-color: ${design.backgroundColor}; border: ${border}; border-top: 8px solid ${accent}; position: relative; ${bgImage} }
-    .letter-overlay { position: absolute; inset: 0; background-color: ${design.backgroundColor}; opacity: ${1 - (design.backgroundOpacity ?? 0.15)}; pointer-events: none; }
-    .letter-content { position: relative; text-align: ${design.align ?? "right"}; }
+    html, body { background: ${paper}; color: ${design.textColor}; font-family: ${fontStack(design.fontFamily)}; }
+    .letter { background: ${paper}; }
+    .letter-content { text-align: ${design.align ?? "right"}; }
     .letter-logo { max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 12px; display: block; }
     h2 { color: ${design.titleColor}; border-bottom-color: ${accent}; }
     pre { color: ${design.textColor}; font-size: ${size.fontSize}; line-height: ${size.lineHeight}; text-align: ${design.align ?? "right"}; }
   `
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+}
+
 function buildPrintHtml(personName: string, content: string, design?: LetterDesignConfig): string {
+  const safeName = escapeHtml(personName)
   const logoHtml = design?.logoUrl
-    ? `<img class="letter-logo" src="${design.logoUrl}" alt="לוגו" />`
-    : ""
-  const overlayHtml = design?.backgroundImageUrl
-    ? `<div class="letter-overlay"></div>`
+    ? `<img class="letter-logo" src="${escapeHtml(design.logoUrl)}" alt="" />`
     : ""
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>מכתב ל${personName}</title>
+  <title>מכתב ל${safeName}</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700&family=Frank+Ruhl+Libre:wght@400;700&family=Heebo:wght@400;700&family=Rubik:wght@400;700&family=Secular+One&display=swap">
   <style>
     * { box-sizing: border-box; }
-    body { font-family: 'Arial Hebrew', Arial, sans-serif; font-size: 14px; direction: rtl; margin: 0; color: #000; }
-    .letter { padding: 40px 50px; min-height: 100vh; }
-    h2 { font-size: 18px; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 20px; }
+    html, body {
+      margin: 0;
+      background: #ffffff;
+      color: #000;
+      font-family: 'Arial Hebrew', Arial, sans-serif;
+      font-size: 14px;
+      direction: rtl;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .letter {
+      padding: 18mm 20mm;
+      min-height: 100vh;
+      background: #ffffff;
+      border: none;
+    }
+    h2 { font-size: 18px; border-bottom: 1px solid #999; padding-bottom: 6px; margin: 0 0 20px; }
     pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.9; margin: 0; }
-    @media print { @page { size: A4; margin: 20mm; } body { -webkit-print-color-adjust: exact; } }
+    @page { size: A4; margin: 0; }
     ${buildDesignStyles(design)}
   </style>
 </head>
 <body>
   <div class="letter">
-    ${overlayHtml}
     <div class="letter-content">
       ${logoHtml}
-      <h2>${personName}</h2>
-      <pre>${content}</pre>
+      <h2>${safeName}</h2>
+      <pre>${escapeHtml(content)}</pre>
     </div>
   </div>
 </body>
