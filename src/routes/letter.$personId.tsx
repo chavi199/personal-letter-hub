@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, CheckCircle, Circle, Clock, FileText, Loader2, Palette, Printer, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle, Circle, Clock, FileText, Loader2, Mail, Palette, Printer, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -209,6 +209,18 @@ function LetterEditorPage() {
               שומר...
             </span>
           )}
+
+          <button
+            type="button"
+            onClick={() => setExportOpen(true)}
+            className="new-feature-chip pe-2.5"
+          >
+            <Star className="new-feature-chip__star" fill="currentColor" />
+            <Star className="new-feature-chip__star" fill="currentColor" />
+            <Star className="new-feature-chip__star" fill="currentColor" />
+            <Mail className="h-3.5 w-3.5" />
+            חדש · אפשרות שליחה במייל
+          </button>
 
           <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
             <Printer className="h-4 w-4 ms-1" />
