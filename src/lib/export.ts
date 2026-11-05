@@ -10,7 +10,7 @@ import {
 } from "docx"
 import { fetchPeopleByGroup } from "./api/people"
 import { toast } from "sonner"
-import { fontStack, sizeStyle, type LetterDesignConfig } from "./design-themes"
+import { fontStack, paperBackground, sizeStyle, type LetterDesignConfig } from "./design-themes"
 
 // ---- Shared: fetch letters ----
 
@@ -174,7 +174,7 @@ function buildDesignStyles(design?: LetterDesignConfig): string {
           : `2px solid ${design.borderColor}`
   const bgImage = design.backgroundImageUrl
     ? `background-image: url('${design.backgroundImageUrl}'); background-size: cover; background-position: center;`
-    : ""
+    : `background: ${paperBackground(design)};`
   const size = sizeStyle(design.fontSize)
   const accent = design.accentColor || design.borderColor
   return `

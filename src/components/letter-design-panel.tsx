@@ -14,15 +14,19 @@ import {
   ORNAMENTS,
   SIZES,
   THEMES,
+  WASHES,
   defaultDesign,
   fontStack,
   normalizeDesign,
+  paperBackground,
   sizeStyle,
   type LetterAlign,
   type LetterDesignConfig,
   type LetterFont,
   type LetterOrnament,
   type LetterSize,
+  type LetterTheme,
+  type LetterWash,
 } from "@/lib/design-themes"
 import { useSaveVersion } from "@/hooks/use-letter-versions"
 import { useUploadDesignAsset, useDeleteDesignAsset } from "@/hooks/use-design-assets"
@@ -149,35 +153,8 @@ export function LetterDesignPanel({
         <div className="flex flex-1 flex-col gap-6 p-4">
 
           {/* Theme selector */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">ערכת נושא</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {THEMES.map((theme) => (
-                <button
-                  key={theme.id}
-                  type="button"
-                  onClick={() => applyTheme(theme.id)}
-                  className={`relative flex h-14 flex-col items-start justify-end overflow-hidden rounded-xl border-2 px-2 py-1.5 text-start transition-all ${
-                    local.theme === theme.id
-                      ? "border-primary shadow-md"
-                      : "border-transparent hover:border-muted-foreground/40"
-                  }`}
-                  style={{ backgroundColor: theme.config.backgroundColor }}
-                >
-                  <span
-                    className="absolute inset-x-0 top-0 h-1"
-                    style={{ backgroundColor: theme.config.accentColor || theme.config.borderColor }}
-                  />
-                  <span className="text-xs font-medium" style={{ color: theme.config.titleColor }}>
-                    {theme.name}
-                  </span>
-                  {local.theme === theme.id && (
-                    <Check className="absolute end-1.5 top-2 h-3.5 w-3.5" style={{ color: theme.config.textColor }} />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ThemeGrid title="ערכת נושא" themes={THEMES.filter((theme) => theme.kind !== "occasion")} selected={local.theme} onPick={applyTheme} />
+          <ThemeGrid title="עיצובים לאירועים" themes={THEMES.filter((theme) => theme.kind === "occasion")} selected={local.theme} onPick={applyTheme} />
 
           <div className="space-y-3">
             <Label className="text-sm font-medium">כתיבה</Label>
@@ -259,12 +236,40 @@ export function LetterDesignPanel({
                     <input
                       type="color"
                       value={local[key] as string}
-                      onChange={(e) => update({ [key]: e.target.value, theme: "custom" })}
+                      onChange={(e) =>
+                        update({
+                          [key]: e.target.value,
+                          theme: "custom",
+                          ...(key === "backgroundColor" ? { wash: "flat" as const } : {}),
+                        })
+                      }
                       className="h-8 w-8 cursor-pointer rounded border"
                     />
                     <span className="text-xs text-muted-foreground">{local[key] as string}</span>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">גוון רקע</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {WASHES.map((wash) => (
+                <button
+                  key={wash.id}
+                  type="button"
+                  onClick={() => update({ wash: wash.id as LetterWash, theme: "custom" })}
+                  className={`h-12 rounded-xl border-2 text-[11px] font-medium ${
+                    (local.wash ?? "flat") === wash.id ? "border-primary" : "border-transparent"
+                  }`}
+                  style={{
+                    background: wash.css || local.backgroundColor,
+                    color: local.textColor,
+                  }}
+                >
+                  {wash.name}
+                </button>
               ))}
             </div>
           </div>
@@ -408,7 +413,7 @@ export function LetterDesignPanel({
           <div className="space-y-2">
             <Label className="text-sm font-medium">תצוגה מקדימה</Label>
             <div
-              className="relative min-h-[160px] overflow-hidden rounded-md p-4 leading-relaxed"
+              className="relative min-h-[220px] overflow-hidden rounded-md p-4 leading-relaxed"
               style={{
                 backgroundColor: local.backgroundColor,
                 color: local.textColor,
@@ -472,5 +477,47 @@ export function LetterDesignPanel({
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+function ThemeGrid({
+  title,
+  themes,
+  selected,
+  onPick,
+}: {
+  title: string
+  themes: LetterTheme[]
+  selected: string
+  onPick: (id: string) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium">{title}</Label>
+      <div className="grid grid-cols-3 gap-2">
+        {themes.map((theme) => (
+          <button
+            key={theme.id}
+            type="button"
+            onClick={() => onPick(theme.id)}
+            className={`relative flex h-14 flex-col items-start justify-end overflow-hidden rounded-xl border-2 px-2 py-1.5 text-start transition-all ${
+              selected === theme.id ? "border-primary shadow-md" : "border-transparent hover:border-muted-foreground/40"
+            }`}
+            style={{ background: paperBackground(theme.config) }}
+          >
+            <span
+              className="absolute inset-x-0 top-0 h-1"
+              style={{ backgroundColor: theme.config.accentColor || theme.config.borderColor }}
+            />
+            <span className="text-xs font-medium" style={{ color: theme.config.titleColor }}>
+              {theme.name}
+            </span>
+            {selected === theme.id && (
+              <Check className="absolute end-1.5 top-2 h-3.5 w-3.5" style={{ color: theme.config.textColor }} />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
