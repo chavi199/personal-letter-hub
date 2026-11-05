@@ -1,11 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/settings")({
@@ -20,6 +23,7 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -132,6 +136,32 @@ function SettingsPage() {
               {savingPassword ? "מעדכן..." : "עדכן סיסמה"}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">מראה</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </span>
+              <div>
+                <div className="text-sm font-medium">מצב לילה רך</div>
+                <div className="text-xs text-muted-foreground">
+                  אותה פלטה רכה — ללא שחור חד. ההעדפה נשמרת במכשיר.
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={theme === "dark"}
+              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              aria-label="מצב לילה"
+            />
+          </div>
         </CardContent>
       </Card>
 

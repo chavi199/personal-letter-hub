@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContentLibraryRouteImport } from './routes/content-library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as LetterPersonIdRouteImport } from './routes/letter.$personId'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 
@@ -48,6 +49,11 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   path: '/groups/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LetterPersonIdRoute = LetterPersonIdRouteImport.update({
   id: '/letter/$personId',
   path: '/letter/$personId',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
+  '/share/$token': typeof ShareTokenRoute
   '/groups/': typeof GroupsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
+  '/share/$token': typeof ShareTokenRoute
   '/groups': typeof GroupsIndexRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/statistics': typeof StatisticsRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/letter/$personId': typeof LetterPersonIdRoute
+  '/share/$token': typeof ShareTokenRoute
   '/groups/': typeof GroupsIndexRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
+    | '/share/$token'
     | '/groups/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
+    | '/share/$token'
     | '/groups'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/statistics'
     | '/groups/$groupId'
     | '/letter/$personId'
+    | '/share/$token'
     | '/groups/'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   StatisticsRoute: typeof StatisticsRoute
   GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   LetterPersonIdRoute: typeof LetterPersonIdRoute
+  ShareTokenRoute: typeof ShareTokenRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
 }
 
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/letter/$personId': {
       id: '/letter/$personId'
       path: '/letter/$personId'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatisticsRoute: StatisticsRoute,
   GroupsGroupIdRoute: GroupsGroupIdRoute,
   LetterPersonIdRoute: LetterPersonIdRoute,
+  ShareTokenRoute: ShareTokenRoute,
   GroupsIndexRoute: GroupsIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -54,3 +54,17 @@ export interface DbContentItem {
   category: string | null
   created_at: string
 }
+
+export interface DbLetterShareLink {
+  id: string
+  person_id: string
+  user_id: string
+  token: string
+  is_active: boolean
+  recipient_name: string
+  letter_content: string
+  design_config: LetterDesignConfig | null
+  created_at: string
+  updated_at: string
+  revoked_at: string | null
+}

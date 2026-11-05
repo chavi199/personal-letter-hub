@@ -74,3 +74,12 @@ export async function deleteContentItem(id: string): Promise<void> {
   const { error } = await supabase.from("content_items").delete().eq("id", id)
   if (error) throw error
 }
+
+export async function deleteContentItems(ids: string[]): Promise<void> {
+  const chunkSize = 100
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize)
+    const { error } = await supabase.from("content_items").delete().in("id", chunk)
+    if (error) throw error
+  }
+}

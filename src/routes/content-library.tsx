@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Plus,
   Upload,
@@ -7,8 +7,7 @@ import {
   Trash2,
   Pencil,
   Loader2,
-  Check,
-  X,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,11 +40,53 @@ import {
   useCreateContentItem,
   useUpdateContentItem,
   useDeleteContentItem,
+  useDeleteContentItems,
   useImportContentItems,
 } from "@/hooks/use-content";
 import type { DbContentItem } from "@/lib/supabase";
 
 type ContentType = "opening" | "compliment" | "closing";
+
+const lastImportKey = "letter-hub:last-content-import";
+
+function readLastImport(type: ContentType): string[] {
+  try {
+    if (typeof localStorage === "undefined") return [];
+    const raw = localStorage.getItem(lastImportKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { type?: ContentType; ids?: string[] };
+    if (parsed.type !== type || !Array.isArray(parsed.ids)) return [];
+    return parsed.ids;
+  } catch {
+    return [];
+  }
+}
+
+function writeLastImport(type: ContentType, ids: string[]) {
+  localStorage.setItem(lastImportKey, JSON.stringify({ type, ids }));
+}
+
+function clearLastImport() {
+  localStorage.removeItem(lastImportKey);
+}
+
+function latestBulkIds(items: DbContentItem[], type: ContentType): string[] {
+  const ofType = items
+    .filter((item) => item.type === type)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  if (ofType.length < 2) return [];
+
+  const newestMs = Date.parse(ofType[0].created_at);
+  if (!Number.isFinite(newestMs)) return [];
+
+  const batch: string[] = [];
+  for (const item of ofType) {
+    const createdMs = Date.parse(item.created_at);
+    if (!Number.isFinite(createdMs) || newestMs - createdMs > 5000) break;
+    batch.push(item.id);
+  }
+  return batch.length > 1 ? batch : [];
+}
 
 const typeLabels: Record<ContentType, string> = {
   opening: "פתיחות",
@@ -68,6 +109,7 @@ function ContentLibraryPage() {
   const createItem = useCreateContentItem();
   const updateItem = useUpdateContentItem();
   const deleteItem = useDeleteContentItem();
+  const deleteItems = useDeleteContentItems();
   const importItems = useImportContentItems();
 
   const [search, setSearch] = useState("");
@@ -77,7 +119,25 @@ function ContentLibraryPage() {
   const [formContent, setFormContent] = useState("");
   const [formCategory, setFormCategory] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DbContentItem | null>(null);
+  const [undoOpen, setUndoOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const undoTarget = useMemo(() => {
+    const candidates = (["opening", "compliment", "closing"] as ContentType[])
+      .map((type) => {
+        const stored = readLastImport(type).filter((id) =>
+          allItems.some((item) => item.id === id),
+        );
+        const ids = stored.length > 0 ? stored : latestBulkIds(allItems, type);
+        const newest = allItems
+          .filter((item) => ids.includes(item.id))
+          .reduce((latest, item) => (item.created_at > latest ? item.created_at : latest), "");
+        return { type, ids, newest };
+      })
+      .filter((candidate) => candidate.ids.length > 0)
+      .sort((a, b) => b.newest.localeCompare(a.newest));
+    return candidates[0] ?? null;
+  }, [allItems]);
 
   const filtered = allItems.filter(
     (item) =>
@@ -139,14 +199,32 @@ function ContentLibraryPage() {
       const [content, category] = line.split(",").map((s) => s.trim());
       return { content, category };
     });
-    await importItems.mutateAsync(
-      { type: activeTab, items },
-      {
-        onSuccess: () => toast.success(`יובאו ${items.length} פריטים`),
-        onError: () => toast.error("שגיאה בייבוא"),
-      },
-    );
+    try {
+      const created = await importItems.mutateAsync({ type: activeTab, items });
+      writeLastImport(activeTab, created.map((item) => item.id));
+      toast.success(`יובאו ${created.length} פריטים`, {
+        action: {
+          label: "בטל ייבוא",
+          onClick: () => setUndoOpen(true),
+        },
+      });
+    } catch {
+      toast.error("שגיאה בייבוא");
+    }
     e.target.value = "";
+  };
+
+  const confirmUndoImport = async () => {
+    const ids = undoTarget?.ids ?? [];
+    if (ids.length === 0) return;
+    try {
+      await deleteItems.mutateAsync(ids);
+      clearLastImport();
+      toast.success(`הייבוא בוטל, נמחקו ${ids.length} פריטים`);
+    } catch {
+      toast.error("שגיאה בביטול הייבוא");
+    }
+    setUndoOpen(false);
   };
 
   const confirmDelete = async () => {
@@ -209,6 +287,30 @@ function ContentLibraryPage() {
         </div>
       </div>
 
+      {undoTarget && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
+          <p className="text-sm">
+            ההעלאה האחרונה הוסיפה {undoTarget.ids.length}{" "}
+            {typeLabels[undoTarget.type]}. אפשר למחוק את כולן בבת אחת, בלי למחוק
+            שורה-שורה.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-amber-400 bg-white hover:bg-amber-100"
+            onClick={() => setUndoOpen(true)}
+            disabled={deleteItems.isPending}
+          >
+            {deleteItems.isPending ? (
+              <Loader2 className="h-4 w-4 ms-1 animate-spin" />
+            ) : (
+              <Undo2 className="h-4 w-4 ms-1" />
+            )}
+            בטל את ההעלאה האחרונה
+          </Button>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
@@ -253,7 +355,7 @@ function ContentLibraryPage() {
                       {filtered.map((item) => (
                         <li
                           key={item.id}
-                          className="flex items-start justify-between gap-3 p-3"
+                          className="flex items-start justify-between gap-3 p-3 text-start"
                         >
                           <div className="min-w-0 flex-1">
                             {item.category && (
@@ -351,6 +453,28 @@ function ContentLibraryPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={undoOpen} onOpenChange={setUndoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>לבטל את הייבוא האחרון?</AlertDialogTitle>
+            <AlertDialogDescription>
+              יימחקו {undoTarget?.ids.length ?? 0} פריטים מהקובץ האחרון שהועלה
+              אל {undoTarget ? typeLabels[undoTarget.type] : ""}. פריטים שהיו
+              במאגר לפני כן יישארו.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>השאר</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUndoImport}
+              disabled={deleteItems.isPending}
+            >
+              {deleteItems.isPending ? "מוחק..." : "מחק את הייבוא"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirm */}
       <AlertDialog

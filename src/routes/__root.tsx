@@ -16,6 +16,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppLayout } from "../components/app-layout";
 import { Toaster } from "../components/ui/sonner";
+import { ThemeProvider } from "../hooks/use-theme";
 import { supabase } from "../lib/supabase";
 
 function NotFoundComponent() {
@@ -78,13 +79,19 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+function isPublicPath(pathname: string) {
+  return pathname === "/login" || pathname.startsWith("/share/")
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ location }) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    if (!session && location.pathname !== "/login") {
-      throw redirect({ to: "/login" })
+    if (!isPublicPath(location.pathname)) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) {
+        throw redirect({ to: "/login" })
+      }
     }
   },
   head: () => ({
@@ -137,6 +144,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="he" dir="rtl">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("letter-hub-theme");if(t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark");document.documentElement.dataset.theme="dark";}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body>
         {children}
@@ -149,20 +161,22 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const location = useLocation();
-  const isPublicRoute = location.pathname === "/login";
+  const isPublicRoute = isPublicPath(location.pathname);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <DirectionProvider dir="rtl">
-        {isPublicRoute ? (
-          <>
-            <Outlet />
-            <Toaster position="top-center" richColors />
-          </>
-        ) : (
-          <AppLayout />
-        )}
-      </DirectionProvider>
+      <ThemeProvider>
+        <DirectionProvider dir="rtl">
+          {isPublicRoute ? (
+            <>
+              <Outlet />
+              <Toaster position="top-center" richColors />
+            </>
+          ) : (
+            <AppLayout />
+          )}
+        </DirectionProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

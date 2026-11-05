@@ -18,7 +18,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { WhatsLeft } from "@/components/whats-left";
+import { useGroups } from "@/hooks/use-groups";
+import { useAllPeople } from "@/hooks/use-people";
 
 const items = [
   { title: "לוח בקרה", url: "/", icon: LayoutDashboard },
@@ -32,6 +36,8 @@ export function AppSidebar() {
   const currentPath = useRouterState({
     select: (router) => router.location.pathname,
   });
+  const { data: groups = [] } = useGroups();
+  const { data: people = [] } = useAllPeople();
 
   const isActive = (path: string) =>
     path === "/" ? currentPath === "/" : currentPath.startsWith(path);
@@ -66,6 +72,14 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupContent>
+            <WhatsLeft groups={groups} people={people} compact maxItems={3} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

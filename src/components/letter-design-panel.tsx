@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { LetterDecor } from "@/components/letter-decor"
+import { LivingLetterPaper } from "@/components/living-letter-paper"
 import {
   FONTS,
   ORNAMENTS,
@@ -141,8 +142,9 @@ export function LetterDesignPanel({
   const bgOpacity = local.backgroundOpacity ?? 0.15
 
   const preview = (
-    <div
-      className="relative mx-auto min-h-[72vh] w-full max-w-3xl overflow-hidden rounded-xl p-8 shadow-soft leading-relaxed sm:p-12"
+    <LivingLetterPaper
+      interactive
+      className="relative mx-auto min-h-[72vh] w-full max-w-3xl overflow-hidden rounded-xl p-8 leading-relaxed sm:p-12"
       style={{
         backgroundColor: local.backgroundColor,
         color: local.textColor,
@@ -175,7 +177,7 @@ export function LetterDesignPanel({
           {currentContent || "תוכן המכתב יופיע כאן..."}
         </p>
       </div>
-    </div>
+    </LivingLetterPaper>
   )
 
   return (
@@ -496,29 +498,61 @@ function ThemeGrid({
   return (
     <div className="space-y-2">
       <Label className="text-sm font-medium">{title}</Label>
-      <div className="grid grid-cols-3 gap-2">
-        {themes.map((theme) => (
-          <button
-            key={theme.id}
-            type="button"
-            onClick={() => onPick(theme.id)}
-            className={`relative flex h-14 flex-col items-start justify-end overflow-hidden rounded-xl border-2 px-2 py-1.5 text-start transition-all ${
-              selected === theme.id ? "border-primary shadow-md" : "border-transparent hover:border-muted-foreground/40"
-            }`}
-            style={{ background: paperBackground(theme.config) }}
-          >
-            <span
-              className="absolute inset-x-0 top-0 h-1"
-              style={{ backgroundColor: theme.config.accentColor || theme.config.borderColor }}
-            />
-            <span className="text-xs font-medium" style={{ color: theme.config.titleColor }}>
-              {theme.name}
-            </span>
-            {selected === theme.id && (
-              <Check className="absolute end-1.5 top-2 h-3.5 w-3.5" style={{ color: theme.config.textColor }} />
-            )}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-2.5">
+        {themes.map((theme) => {
+          const active = selected === theme.id
+          const accent = theme.config.accentColor || theme.config.borderColor
+          return (
+            <button
+              key={theme.id}
+              type="button"
+              onClick={() => onPick(theme.id)}
+              aria-pressed={active}
+              className={`theme-gallery-card group relative flex h-28 flex-col overflow-hidden rounded-2xl border-2 text-start ${
+                active
+                  ? "theme-gallery-card--active border-primary"
+                  : "border-transparent hover:border-muted-foreground/35"
+              }`}
+              style={{ background: paperBackground(theme.config) }}
+            >
+              <span
+                className="absolute inset-x-0 top-0 h-1.5 transition-all group-hover:h-2"
+                style={{ backgroundColor: accent }}
+              />
+              <div className="relative flex flex-1 flex-col justify-between p-2.5 pt-3.5">
+                <div
+                  className="rounded-lg border px-2 py-1.5 shadow-sm transition-transform duration-200 group-hover:scale-[1.03]"
+                  style={{
+                    backgroundColor: theme.config.backgroundColor,
+                    borderColor: theme.config.borderStyle === "none" ? "transparent" : theme.config.borderColor,
+                    borderStyle: theme.config.borderStyle === "dashed" ? "dashed" : "solid",
+                    borderWidth: theme.config.borderStyle === "double" ? 3 : theme.config.borderStyle === "none" ? 0 : 1,
+                  }}
+                >
+                  <div className="mb-1 h-1.5 w-10 rounded-full opacity-80" style={{ backgroundColor: theme.config.titleColor }} />
+                  <div className="space-y-1">
+                    <div className="h-1 w-full rounded-full opacity-35" style={{ backgroundColor: theme.config.textColor }} />
+                    <div className="h-1 w-[80%] rounded-full opacity-25" style={{ backgroundColor: theme.config.textColor }} />
+                    <div className="h-1 w-[60%] rounded-full opacity-20" style={{ backgroundColor: theme.config.textColor }} />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-1">
+                  <span className="text-xs font-semibold" style={{ color: theme.config.titleColor }}>
+                    {theme.name}
+                  </span>
+                  {active && (
+                    <span
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full"
+                      style={{ backgroundColor: accent, color: "#fff" }}
+                    >
+                      <Check className="h-3 w-3" />
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

@@ -1,16 +1,21 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
-import { Clock, Copy, RotateCcw, Star, Trash2 } from "lucide-react"
+import { Clock, Copy, GitCompareArrows, RotateCcw, Star, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { LetterDecor } from "@/components/letter-decor"
+import { TextDiffView } from "@/components/text-diff-view"
 import { useLetterVersions, useSaveVersion, useDeleteVersion, useUpdateVersion } from "@/hooks/use-letter-versions"
 import { ApplyVersionSheet } from "@/components/apply-version-sheet"
+import { summarizeDesignDiff } from "@/lib/design-diff"
+import { diffTexts } from "@/lib/text-diff"
 import type { DbLetterVersion } from "@/lib/supabase"
 import {
   fontStack,
@@ -31,6 +36,8 @@ interface Props {
   onRestore: (content: string, designConfig?: LetterDesignConfig | null) => void
 }
 
+const CURRENT_KEY = "current"
+
 export function LetterVersionsPanel({
   open,
   onClose,
@@ -46,12 +53,47 @@ export function LetterVersionsPanel({
   const [preview, setPreview] = useState<DbLetterVersion | null>(null)
   const [applyVersion, setApplyVersion] = useState<DbLetterVersion | null>(null)
   const [versionName, setVersionName] = useState("")
+  const [compareOpen, setCompareOpen] = useState(false)
+  const [leftKey, setLeftKey] = useState(CURRENT_KEY)
+  const [rightKey, setRightKey] = useState("")
 
   const ordered = [...versions].sort((a, b) => {
     const pin = Number(Boolean(b.design_config?.pinned)) - Number(Boolean(a.design_config?.pinned))
     if (pin !== 0) return pin
     return a.created_at < b.created_at ? 1 : -1
   })
+
+  function resolveSide(key: string): { label: string; content: string; design: LetterDesignConfig | null } {
+    if (key === CURRENT_KEY) {
+      return {
+        label: "גרסה נוכחית",
+        content: currentContent,
+        design: hasLetterDesign(designConfig) ? designConfig : null,
+      }
+    }
+    const version = versions.find((v) => v.id === key)
+    return {
+      label: version
+        ? version.design_config?.label ||
+          format(new Date(version.created_at), "d בMMMM yyyy, HH:mm", { locale: he })
+        : "גרסה",
+      content: version?.letter_content ?? "",
+      design: hasLetterDesign(version?.design_config) ? version!.design_config : null,
+    }
+  }
+
+  const compare = useMemo(() => {
+    if (!compareOpen || !rightKey) return null
+    const left = resolveSide(leftKey)
+    const right = resolveSide(rightKey)
+    return {
+      left,
+      right,
+      parts: diffTexts(left.content, right.content),
+      designChanges: summarizeDesignDiff(left.design, right.design),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recompute when content/versions change
+  }, [compareOpen, leftKey, rightKey, currentContent, designConfig, versions])
 
   function handleSave() {
     if (!currentContent.trim()) {
@@ -84,6 +126,8 @@ export function LetterVersionsPanel({
     deleteVersion.mutate(id, {
       onSuccess: () => {
         if (preview?.id === id) setPreview(null)
+        if (leftKey === id) setLeftKey(CURRENT_KEY)
+        if (rightKey === id) setRightKey("")
         toast.success("גרסה נמחקה")
       },
       onError: () => toast.error("שגיאה במחיקה"),
@@ -96,6 +140,12 @@ export function LetterVersionsPanel({
       { id: version.id, designConfig: next as LetterDesignConfig },
       { onError: () => toast.error("שגיאה בעדכון הגרסה") },
     )
+  }
+
+  function openCompare(seedRightId?: string) {
+    setLeftKey(CURRENT_KEY)
+    setRightKey(seedRightId ?? ordered[0]?.id ?? "")
+    setCompareOpen(true)
   }
 
   return (
@@ -118,6 +168,12 @@ export function LetterVersionsPanel({
           <Button className="w-full" variant="outline" onClick={handleSave} disabled={saveVersion.isPending}>
             שמור עותק של המכתב והעיצוב
           </Button>
+          {ordered.length > 0 && (
+            <Button className="w-full" variant="secondary" onClick={() => openCompare()}>
+              <GitCompareArrows className="h-4 w-4 ms-1" />
+              השוואת גרסאות
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
@@ -151,6 +207,15 @@ export function LetterVersionsPanel({
                       <span className="truncate text-sm font-medium">{title}</span>
                     </div>
                     <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openCompare(v.id) }}
+                        className="text-muted-foreground hover:text-primary"
+                        aria-label="השווה גרסה"
+                        title="השווה לנוכחית"
+                      >
+                        <GitCompareArrows className="h-3.5 w-3.5" />
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); patchDesign(v, { pinned: !design?.pinned }) }}
@@ -192,6 +257,7 @@ export function LetterVersionsPanel({
                       version={v}
                       onRestore={() => handleRestore(v)}
                       onRename={(label) => patchDesign(v, { label })}
+                      onCompare={() => openCompare(v.id)}
                     />
                   )}
                 </div>
@@ -199,6 +265,81 @@ export function LetterVersionsPanel({
             </div>
           </ScrollArea>
         )}
+      </SheetContent>
+    </Sheet>
+
+    <Sheet open={compareOpen} onOpenChange={setCompareOpen}>
+      <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[560px]">
+        <SheetHeader className="border-b p-4">
+          <SheetTitle className="flex items-center gap-2 text-base">
+            <GitCompareArrows className="h-4 w-4" />
+            השוואת גרסאות
+          </SheetTitle>
+        </SheetHeader>
+        <div className="space-y-3 border-b p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">לפני (בסיס)</Label>
+              <Select value={leftKey} onValueChange={setLeftKey}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={CURRENT_KEY}>גרסה נוכחית</SelectItem>
+                  {ordered.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.design_config?.label ||
+                        format(new Date(v.created_at), "d בMMMM yyyy, HH:mm", { locale: he })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">אחרי (השוואה)</Label>
+              <Select value={rightKey || undefined} onValueChange={setRightKey}>
+                <SelectTrigger>
+                  <SelectValue placeholder="בחרי גרסה" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={CURRENT_KEY}>גרסה נוכחית</SelectItem>
+                  {ordered.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.design_config?.label ||
+                        format(new Date(v.created_at), "d בMMMM yyyy, HH:mm", { locale: he })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            ירוק = נוסף באחרי · אדום מחוק = הוסר מהבסיס
+          </p>
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="space-y-4 p-4">
+            {compare ? (
+              <>
+                {compare.designChanges.length > 0 ? (
+                  <div className="rounded-xl border bg-muted/30 p-3">
+                    <p className="mb-1.5 text-xs font-medium">שינויי עיצוב</p>
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                      {compare.designChanges.map((change) => (
+                        <li key={change}>· {change}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">אין שינוי בעיצוב (theme / wash / font).</p>
+                )}
+                <TextDiffView parts={compare.parts} />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">בחרי שתי גרסאות להשוואה.</p>
+            )}
+          </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
 
@@ -218,10 +359,12 @@ function VersionPreview({
   version,
   onRestore,
   onRename,
+  onCompare,
 }: {
   version: DbLetterVersion
   onRestore: () => void
   onRename: (label: string) => void
+  onCompare: () => void
 }) {
   const design = hasLetterDesign(version.design_config) ? normalizeDesign(version.design_config) : null
   const [name, setName] = useState(version.design_config?.label ?? "")
@@ -271,10 +414,15 @@ function VersionPreview({
           {version.letter_content || "(מכתב ריק)"}
         </div>
       </div>
-      <Button size="sm" className="w-full" onClick={onRestore}>
-        <RotateCcw className="h-3.5 w-3.5 ms-1" />
-        החלף במכתב הנוכחי
-      </Button>
+      <div className="flex gap-2">
+        <Button size="sm" className="flex-1" onClick={onRestore}>
+          <RotateCcw className="h-3.5 w-3.5 ms-1" />
+          החלף במכתב הנוכחי
+        </Button>
+        <Button size="sm" variant="outline" onClick={onCompare}>
+          <GitCompareArrows className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   )
 }

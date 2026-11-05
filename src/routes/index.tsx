@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SkyDecoration } from "@/components/sky-decoration";
+import { WhatsLeft } from "@/components/whats-left";
 import { useGroups } from "@/hooks/use-groups";
 import { useAllPeople } from "@/hooks/use-people";
 
@@ -112,6 +113,8 @@ function DashboardPage() {
               </p>
             </CardContent>
           </Card>
+
+          <WhatsLeft groups={groups} people={allPeople} />
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">

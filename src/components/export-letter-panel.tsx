@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
-import { Download, Loader2, Mail } from "lucide-react"
+import { Check, Copy, Download, Link2, Link2Off, Loader2, Mail, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useLetterVersions } from "@/hooks/use-letter-versions"
+import {
+  useActiveShareLink,
+  useCreateOrRefreshShareLink,
+  useRevokeShareLink,
+  useRotateShareLink,
+} from "@/hooks/use-letter-share"
+import { buildShareUrl } from "@/lib/api/letter-share"
 import { exportLetterToPDF, exportLetterToWord } from "@/lib/export"
 import { renderLetterPdfBase64 } from "@/lib/letter-pdf"
 import { sendLetterEmail } from "@/lib/api/send-letter-email"
@@ -26,14 +33,20 @@ interface Props {
 }
 
 function errorText(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : "שליחת המייל נכשלה"
+  return error instanceof Error && error.message ? error.message : "הפעולה נכשלה"
 }
 
 export function ExportLetterPanel({ open, onClose, personName, personId, currentContent, designConfig }: Props) {
   const { data: versions = [] } = useLetterVersions(personId)
+  const { data: shareLink, isLoading: shareLoading } = useActiveShareLink(personId)
+  const createShare = useCreateOrRefreshShareLink(personId)
+  const rotateShare = useRotateShareLink(personId)
+  const revokeShare = useRevokeShareLink(personId)
+
   const [selectedKey, setSelectedKey] = useState("current")
   const [emails, setEmails] = useState("")
   const [sending, setSending] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const selectedVersion = versions.find((v) => v.id === selectedKey)
   const selectedContent =
@@ -45,6 +58,8 @@ export function ExportLetterPanel({ open, onClose, personName, personId, current
     selectedKey === "current"
       ? designConfig
       : (selectedVersion?.design_config ?? designConfig)
+
+  const shareUrl = shareLink ? buildShareUrl(shareLink.token) : ""
 
   async function handleSendEmail() {
     const to = [...new Set(emails.split(/[,;\s]+/).map((item) => item.trim().toLowerCase()).filter(Boolean))]
@@ -82,6 +97,71 @@ export function ExportLetterPanel({ open, onClose, personName, personId, current
     }
   }
 
+  const sharePayload = {
+    recipientName: personName,
+    letterContent: selectedContent,
+    designConfig: effectiveDesign ?? null,
+  }
+
+  function handleCreateShare() {
+    if (!selectedContent.trim()) {
+      toast.error("המכתב ריק — אין מה לשתף")
+      return
+    }
+    createShare.mutate(sharePayload, {
+      onSuccess: async (link) => {
+        const url = buildShareUrl(link.token)
+        try {
+          await navigator.clipboard.writeText(url)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1800)
+          toast.success(shareLink ? "תוכן הלינק עודכן והועתק" : "לינק נוצר והועתק")
+        } catch {
+          toast.success(shareLink ? "תוכן הלינק עודכן" : "לינק נוצר")
+        }
+      },
+      onError: (error) => toast.error(errorText(error)),
+    })
+  }
+
+  function handleRotateShare() {
+    rotateShare.mutate(sharePayload, {
+      onSuccess: async (link) => {
+        const url = buildShareUrl(link.token)
+        try {
+          await navigator.clipboard.writeText(url)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1800)
+          toast.success("לינק חדש נוצר (הקודם בוטל)")
+        } catch {
+          toast.success("לינק חדש נוצר")
+        }
+      },
+      onError: (error) => toast.error(errorText(error)),
+    })
+  }
+
+  function handleRevokeShare() {
+    revokeShare.mutate(undefined, {
+      onSuccess: () => toast.success("הלינק בוטל"),
+      onError: (error) => toast.error(errorText(error)),
+    })
+  }
+
+  async function handleCopyShare() {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+      toast.success("הלינק הועתק")
+    } catch {
+      toast.error("לא הצלחתי להעתיק")
+    }
+  }
+
+  const busy = createShare.isPending || rotateShare.isPending || revokeShare.isPending
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="flex w-[420px] flex-col gap-0 p-0 sm:max-w-[420px]">
@@ -91,7 +171,7 @@ export function ExportLetterPanel({ open, onClose, personName, personId, current
 
         <div className="flex flex-1 flex-col gap-4 overflow-auto p-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">גרסה לייצוא</Label>
+            <Label className="text-xs">גרסה לייצוא / שיתוף</Label>
             <Select value={selectedKey} onValueChange={setSelectedKey}>
               <SelectTrigger>
                 <SelectValue />
@@ -112,9 +192,69 @@ export function ExportLetterPanel({ open, onClose, personName, personId, current
             <Textarea
               readOnly
               value={selectedContent}
-              className="min-h-[340px] resize-none bg-muted/40 text-sm leading-relaxed"
+              className="min-h-[220px] resize-none bg-muted/40 text-sm leading-relaxed"
               placeholder="(המכתב ריק)"
             />
+          </div>
+
+          <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
+            <div className="flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-xs font-medium">לינק לשיתוף (קריאה בלבד)</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              מקבלים רואים את המכתב והעיצוב בלי גישה לעריכה. הלינק מבוסס על טוקן אקראי חזק.
+            </p>
+
+            {shareLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                טוען לינק...
+              </div>
+            ) : shareLink ? (
+              <>
+                <Input dir="ltr" readOnly value={shareUrl} className="font-mono text-xs" />
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" size="sm" disabled={busy} onClick={handleCopyShare}>
+                    {copied ? <Check className="h-3.5 w-3.5 ms-1" /> : <Copy className="h-3.5 w-3.5 ms-1" />}
+                    העתק לינק
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={busy} onClick={handleCreateShare}>
+                    {createShare.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 ms-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5 ms-1" />
+                    )}
+                    עדכן תוכן
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={busy} onClick={handleRotateShare}>
+                    {rotateShare.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 ms-1 animate-spin" />
+                    ) : (
+                      <Link2 className="h-3.5 w-3.5 ms-1" />
+                    )}
+                    סובב לינק
+                  </Button>
+                  <Button variant="destructive" size="sm" disabled={busy} onClick={handleRevokeShare}>
+                    {revokeShare.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 ms-1 animate-spin" />
+                    ) : (
+                      <Link2Off className="h-3.5 w-3.5 ms-1" />
+                    )}
+                    בטל לינק
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Button className="w-full" disabled={busy} onClick={handleCreateShare}>
+                {createShare.isPending ? (
+                  <Loader2 className="h-4 w-4 ms-1 animate-spin" />
+                ) : (
+                  <Link2 className="h-4 w-4 ms-1" />
+                )}
+                צור לינק לשיתוף
+              </Button>
+            )}
           </div>
 
           <div className="space-y-1.5 border-t pt-4">

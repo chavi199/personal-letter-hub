@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createContentItem,
   deleteContentItem,
+  deleteContentItems,
   fetchAllContentItems,
   importContentItems,
   updateContentItem,
@@ -65,6 +66,14 @@ export function useDeleteContentItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => deleteContentItem(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: contentKey.all }),
+  })
+}
+
+export function useDeleteContentItems() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) => deleteContentItems(ids),
     onSuccess: () => qc.invalidateQueries({ queryKey: contentKey.all }),
   })
 }

@@ -32,13 +32,15 @@ function Leaf({ className }: { className?: string }) {
 }
 
 const pieces = [
-  { Icon: Heart, className: "start-[8%] top-28 h-9 w-9 -rotate-12 opacity-70" },
-  { Icon: Star, className: "end-[6%] top-36 h-7 w-7 rotate-12 opacity-80" },
-  { Icon: Spark, className: "start-[22%] top-[46%] h-5 w-5 opacity-60" },
-  { Icon: Leaf, className: "end-[14%] top-[58%] h-10 w-10 -rotate-6 opacity-55" },
-  { Icon: Heart, className: "end-[28%] bottom-16 h-6 w-6 rotate-6 opacity-50" },
-  { Icon: Star, className: "start-[12%] bottom-24 h-5 w-5 opacity-60" },
-  { Icon: Spark, className: "end-[10%] bottom-40 h-4 w-4 opacity-70" },
+  { Icon: Heart, className: "start-[8%] top-28 h-9 w-9 -rotate-12 opacity-45" },
+  { Icon: Star, className: "end-[6%] top-36 h-7 w-7 rotate-12 opacity-50" },
+  { Icon: Spark, className: "start-[22%] top-[46%] h-5 w-5 opacity-40" },
+  { Icon: Leaf, className: "end-[14%] top-[58%] h-10 w-10 -rotate-6 opacity-40" },
+  { Icon: Heart, className: "end-[28%] bottom-16 h-6 w-6 rotate-6 opacity-35" },
+  { Icon: Star, className: "start-[12%] bottom-24 h-5 w-5 opacity-40" },
+  { Icon: Spark, className: "end-[10%] bottom-40 h-4 w-4 opacity-45" },
+  { Icon: Leaf, className: "start-[40%] top-[18%] h-6 w-6 rotate-12 opacity-30" },
+  { Icon: Heart, className: "end-[40%] bottom-[28%] h-5 w-5 -rotate-8 opacity-28" },
 ];
 
 export function GentleMotifs() {
