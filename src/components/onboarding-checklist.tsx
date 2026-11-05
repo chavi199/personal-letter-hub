@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { CheckCircle2, Circle, ListChecks, X } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
@@ -17,6 +17,50 @@ import { cn } from "@/lib/utils"
 interface OnboardingChecklistProps {
   groups: DbGroup[]
   people: DbPerson[]
+}
+
+type ChecklistItem = {
+  id: string
+  label: string
+  done: boolean
+  hint: string
+  href:
+    | { to: "/groups" }
+    | { to: "/groups/$groupId"; groupId: string }
+    | { to: "/letter/$personId"; personId: string }
+}
+
+function ChecklistLink({
+  href,
+  children,
+}: {
+  href: ChecklistItem["href"]
+  children: ReactNode
+}) {
+  const className =
+    "flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/60"
+
+  if (href.to === "/groups/$groupId") {
+    return (
+      <Link to="/groups/$groupId" params={{ groupId: href.groupId }} className={className}>
+        {children}
+      </Link>
+    )
+  }
+
+  if (href.to === "/letter/$personId") {
+    return (
+      <Link to="/letter/$personId" params={{ personId: href.personId }} className={className}>
+        {children}
+      </Link>
+    )
+  }
+
+  return (
+    <Link to="/groups" className={className}>
+      {children}
+    </Link>
+  )
 }
 
 export function OnboardingChecklist({ groups, people }: OnboardingChecklistProps) {
@@ -43,45 +87,45 @@ export function OnboardingChecklist({ groups, people }: OnboardingChecklistProps
   const firstPerson = people[0]
   const firstGroup = groups[0]
 
-  const items = [
+  const items: ChecklistItem[] = [
     {
       id: "group",
       label: "יצירת קבוצה",
       done: hasGroup,
       hint: "מתחילים בקבוצה שמאגדת את האנשים",
-      to: "/groups" as const,
-      params: undefined,
+      href: { to: "/groups" },
     },
     {
       id: "person",
       label: "הוספת לפחות אדם אחד",
       done: hasPerson,
       hint: "לכל אדם יהיה מכתב והערות אישיות",
-      to: (hasGroup ? "/groups/$groupId" : "/groups") as "/groups" | "/groups/$groupId",
-      params: hasGroup && firstGroup ? { groupId: firstGroup.id } : undefined,
+      href:
+        hasGroup && firstGroup
+          ? { to: "/groups/$groupId", groupId: firstGroup.id }
+          : { to: "/groups" },
     },
     {
       id: "letter",
       label: "כתיבת מכתב ראשון",
       done: hasLetter,
       hint: "טיוטה או מכתב שהושלם — זה נחשב",
-      to: (hasPerson ? "/letter/$personId" : hasGroup ? "/groups/$groupId" : "/groups") as
-        | "/letter/$personId"
-        | "/groups/$groupId"
-        | "/groups",
-      params: hasPerson && firstPerson
-        ? { personId: firstPerson.id }
-        : hasGroup && firstGroup
-          ? { groupId: firstGroup.id }
-          : undefined,
+      href:
+        hasPerson && firstPerson
+          ? { to: "/letter/$personId", personId: firstPerson.id }
+          : hasGroup && firstGroup
+            ? { to: "/groups/$groupId", groupId: firstGroup.id }
+            : { to: "/groups" },
     },
     {
       id: "version",
       label: "שמירת גרסה ראשונה",
       done: hasVersion,
       hint: "שמירת גרסה מאפשרת לנסות ניסוחים ולחזור אחורה",
-      to: (hasPerson ? "/letter/$personId" : "/groups") as "/letter/$personId" | "/groups",
-      params: hasPerson && firstPerson ? { personId: firstPerson.id } : undefined,
+      href:
+        hasPerson && firstPerson
+          ? { to: "/letter/$personId", personId: firstPerson.id }
+          : { to: "/groups" },
     },
   ]
 
@@ -158,42 +202,9 @@ export function OnboardingChecklist({ groups, people }: OnboardingChecklistProps
               )
             }
 
-            if (item.to === "/groups/$groupId" && item.params && "groupId" in item.params) {
-              return (
-                <li key={item.id}>
-                  <Link
-                    to="/groups/$groupId"
-                    params={{ groupId: item.params.groupId }}
-                    className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/60"
-                  >
-                    {content}
-                  </Link>
-                </li>
-              )
-            }
-
-            if (item.to === "/letter/$personId" && item.params && "personId" in item.params) {
-              return (
-                <li key={item.id}>
-                  <Link
-                    to="/letter/$personId"
-                    params={{ personId: item.params.personId }}
-                    className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/60"
-                  >
-                    {content}
-                  </Link>
-                </li>
-              )
-            }
-
             return (
               <li key={item.id}>
-                <Link
-                  to="/groups"
-                  className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/60"
-                >
-                  {content}
-                </Link>
+                <ChecklistLink href={item.href}>{content}</ChecklistLink>
               </li>
             )
           })}
