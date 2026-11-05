@@ -153,6 +153,8 @@
       radial-gradient(ellipse 18% 12% at 22% 42%, oklch(0.99 0.01 80 / 0.7), transparent 70%),
       radial-gradient(ellipse 22% 14% at 78% 38%, oklch(0.99 0.01 80 / 0.65), transparent 70%);
     background-attachment: fixed;
+    background-size: 140% 140%;
+    animation: living-bg 18s ease-in-out infinite alternate;
   }
 }
 
@@ -165,17 +167,93 @@
     oklch(0.8 0.12 155),
     oklch(0.76 0.1 210),
     oklch(0.7 0.12 280),
-    oklch(0.72 0.14 340)
+    oklch(0.72 0.14 340),
+    oklch(0.78 0.14 25)
   );
+  background-size: 220% 100%;
+  animation: rainbow-shift 6s linear infinite;
 }
 
 .rainbow-fill {
   background: linear-gradient(
     115deg,
     oklch(0.72 0.15 18),
-    oklch(0.64 0.16 340) 48%,
-    oklch(0.62 0.13 275)
+    oklch(0.78 0.14 85),
+    oklch(0.7 0.13 155),
+    oklch(0.64 0.16 340),
+    oklch(0.62 0.13 275),
+    oklch(0.72 0.15 18)
   );
+  background-size: 280% 280%;
+  animation: rainbow-flow 7s ease infinite;
+}
+
+.motif-float {
+  animation: motif-float 7s ease-in-out infinite;
+}
+
+.motif-float:nth-child(2n) {
+  animation-duration: 9s;
+  animation-delay: -1.5s;
+}
+
+.motif-float:nth-child(3n) {
+  animation-duration: 11s;
+  animation-delay: -3s;
+}
+
+@keyframes living-bg {
+  0% {
+    background-position: 0% 20%, 100% 0%, 100% 100%, 0% 100%, 48% 22%, 62% 68%, 22% 42%, 78% 38%;
+  }
+  50% {
+    background-position: 18% 0%, 82% 18%, 90% 82%, 12% 88%, 40% 30%, 70% 58%, 28% 48%, 72% 32%;
+  }
+  100% {
+    background-position: 8% 28%, 92% 8%, 78% 92%, 6% 78%, 55% 18%, 55% 72%, 18% 38%, 84% 44%;
+  }
+}
+
+@keyframes rainbow-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes rainbow-flow {
+  0% {
+    background-position: 0% 40%;
+  }
+  50% {
+    background-position: 100% 60%;
+  }
+  100% {
+    background-position: 0% 40%;
+  }
+}
+
+@keyframes motif-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-10px) rotate(6deg);
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .rainbow-line,
+  .rainbow-fill,
+  .motif-float {
+    animation: none !important;
+  }
 }
 
 .new-feature-chip {
