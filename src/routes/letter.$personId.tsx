@@ -141,7 +141,9 @@ function LetterEditorPage() {
   const [personalInfo, setPersonalInfo] = useState(initialPerson.personal_info);
   const [status, setStatus] = useState<LetterStatus>(initialPerson.status);
   const [saving, setSaving] = useState(false);
+  const [savedQuietly, setSavedQuietly] = useState(false);
   const [inkPulse, setInkPulse] = useState(false);
+  const savedHintTimer = useRef<number | null>(null);
   const [statusCelebrate, setStatusCelebrate] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -230,11 +232,18 @@ function LetterEditorPage() {
     return () => window.clearInterval(id);
   }, [timerRunning]);
 
-  const debouncedLetter = useDebounce(letterContent, 500);
-  const debouncedNotes = useDebounce(notes, 500);
-  const debouncedIdeas = useDebounce(ideas, 500);
-  const debouncedTraits = useDebounce(traits, 500);
-  const debouncedInfo = useDebounce(personalInfo, 500);
+  // Longer pause before autosave — less noise while typing.
+  const debouncedLetter = useDebounce(letterContent, 1400);
+  const debouncedNotes = useDebounce(notes, 1400);
+  const debouncedIdeas = useDebounce(ideas, 1400);
+  const debouncedTraits = useDebounce(traits, 1400);
+  const debouncedInfo = useDebounce(personalInfo, 1400);
+
+  useEffect(() => {
+    return () => {
+      if (savedHintTimer.current) window.clearTimeout(savedHintTimer.current);
+    };
+  }, []);
 
   const initialized = useRef(false);
   useEffect(() => {
@@ -243,6 +252,8 @@ function LetterEditorPage() {
       return;
     }
     setSaving(true);
+    setSavedQuietly(false);
+    if (savedHintTimer.current) window.clearTimeout(savedHintTimer.current);
     updatePerson.mutate(
       {
         letter_content: debouncedLetter,
@@ -255,7 +266,9 @@ function LetterEditorPage() {
         onSuccess: () => {
           setInkPulse(true);
           window.setTimeout(() => setInkPulse(false), 720);
-          toast.success("נשמר", { id: "letter-autosave", duration: 1400 });
+          // Quiet toolbar hint only — no toast popup while writing.
+          setSavedQuietly(true);
+          savedHintTimer.current = window.setTimeout(() => setSavedQuietly(false), 2200);
         },
         onSettled: () => setSaving(false),
         onError: () => toast.error("שגיאה בשמירה"),
@@ -567,12 +580,14 @@ function LetterEditorPage() {
 
         <div className="relative flex items-center gap-2 flex-wrap">
           <SoftConfetti active={statusCelebrate} onDone={() => setStatusCelebrate(false)} />
-          {saving && (
+          {saving ? (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
               שומר...
             </span>
-          )}
+          ) : savedQuietly ? (
+            <span className="text-xs text-muted-foreground">נשמר</span>
+          ) : null}
 
           {!focusMode && (
             <Button variant="outline" size="sm" onClick={enterFocusMode}>
