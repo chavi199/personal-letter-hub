@@ -42,6 +42,24 @@ function shape(type: LetterOrnament, color: string) {
       </>
     )
   }
+  if (type === "masks") {
+    return (
+      <>
+        <ellipse cx="9" cy="12" rx="5" ry="4.2" fill={color} opacity="0.9" />
+        <ellipse cx="15" cy="12" rx="5" ry="4.2" fill={color} opacity="0.7" />
+        <circle cx="7.5" cy="12" r="1" fill="#fff" />
+        <circle cx="10.5" cy="12" r="1" fill="#fff" />
+      </>
+    )
+  }
+  if (type === "candles") {
+    return (
+      <>
+        <rect x="10.2" y="10" width="3.6" height="10" rx="0.6" fill={color} />
+        <path fill="#f6c453" d="M12 3.2c1.4 1.6 2.2 2.8 2.2 4.1A2.2 2.2 0 0 1 12 9.5 2.2 2.2 0 0 1 9.8 7.3c0-1.3.8-2.5 2.2-4.1z" />
+      </>
+    )
+  }
   return <path fill={color} d="M12 2.6 14.4 9H21l-5.3 3.8 2 6.4L12 15.8 6.3 19.2l2-6.4L3 9h6.6L12 2.6z" />
 }
 

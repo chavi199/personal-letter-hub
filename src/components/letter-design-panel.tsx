@@ -170,9 +170,6 @@ export function LetterDesignPanel({
         {local.logoUrl && (
           <img src={local.logoUrl} alt="לוגו" className="mb-4 h-12 object-contain" />
         )}
-        <p className="mb-4 text-xl font-semibold" style={{ color: local.titleColor }}>
-          שלום [שם],
-        </p>
         <p className="whitespace-pre-wrap break-words">
           {currentContent || "תוכן המכתב יופיע כאן..."}
         </p>
@@ -203,18 +200,20 @@ export function LetterDesignPanel({
           <div className="space-y-3">
             <Label className="text-sm font-medium">כתיבה</Label>
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">גופן</Label>
+              <Label className="text-xs text-muted-foreground">גופן / סגנון כתיבה</Label>
               <Select
                 value={local.fontFamily ?? "rubik"}
                 onValueChange={(value) => update({ fontFamily: value as LetterFont, theme: "custom" })}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72">
                   {FONTS.map((font) => (
                     <SelectItem key={font.id} value={font.id}>
-                      <span style={{ fontFamily: font.stack }}>{font.name}</span>
+                      <span className="text-sm" style={{ fontFamily: font.stack }}>
+                        {font.name} — דוגמה לכתיבה
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

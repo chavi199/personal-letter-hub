@@ -51,17 +51,11 @@ export function SharedLetterView({ recipientName, content, designConfig }: Props
         {design.logoUrl && (
           <img src={design.logoUrl} alt="" className="mx-auto h-10 object-contain sm:h-12" />
         )}
-        {recipientName.trim() && (
-          <h1
-            className="text-xl font-semibold tracking-tight sm:text-2xl"
-            style={{ color: design.titleColor, textAlign: design.align }}
-          >
-            מכתב ל{recipientName.trim()}
-          </h1>
-        )}
+        {/* Shared view shows letter body only; recipientName kept for page chrome elsewhere. */}
         <div
           className="whitespace-pre-wrap break-words"
           style={{ wordBreak: "break-word" }}
+          data-recipient={recipientName.trim() || undefined}
         >
           {content.trim() || "המכתב ריק."}
         </div>

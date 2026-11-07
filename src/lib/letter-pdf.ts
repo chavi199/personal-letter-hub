@@ -91,6 +91,45 @@ function ornamentSvg(type: LetterOrnament, color: string) {
     }
     return svg
   }
+  if (type === "masks") {
+    for (const [cx, opacity] of [
+      ["9", "0.9"],
+      ["15", "0.7"],
+    ]) {
+      const ellipse = svgEl("ellipse")
+      ellipse.setAttribute("cx", cx)
+      ellipse.setAttribute("cy", "12")
+      ellipse.setAttribute("rx", "5")
+      ellipse.setAttribute("ry", "4.2")
+      ellipse.setAttribute("fill", color)
+      ellipse.setAttribute("opacity", opacity)
+      svg.appendChild(ellipse)
+    }
+    for (const cx of ["7.5", "10.5"]) {
+      const eye = svgEl("circle")
+      eye.setAttribute("cx", cx)
+      eye.setAttribute("cy", "12")
+      eye.setAttribute("r", "1")
+      eye.setAttribute("fill", "#fff")
+      svg.appendChild(eye)
+    }
+    return svg
+  }
+  if (type === "candles") {
+    const body = svgEl("rect")
+    body.setAttribute("x", "10.2")
+    body.setAttribute("y", "10")
+    body.setAttribute("width", "3.6")
+    body.setAttribute("height", "10")
+    body.setAttribute("rx", "0.6")
+    body.setAttribute("fill", color)
+    svg.appendChild(body)
+    const flame = svgEl("path")
+    flame.setAttribute("fill", "#f6c453")
+    flame.setAttribute("d", "M12 3.2c1.4 1.6 2.2 2.8 2.2 4.1A2.2 2.2 0 0 1 12 9.5 2.2 2.2 0 0 1 9.8 7.3c0-1.3.8-2.5 2.2-4.1z")
+    svg.appendChild(flame)
+    return svg
+  }
   const path = svgEl("path")
   path.setAttribute("fill", color)
   path.setAttribute(
@@ -176,21 +215,12 @@ function buildPage(
     const image = document.createElement("img")
     image.src = logo
     image.alt = ""
-    image.style.cssText = "display:block;max-height:60px;max-width:200px;object-fit:contain;margin-bottom:12px"
+    image.style.cssText = "display:block;max-height:60px;max-width:200px;object-fit:contain;margin-bottom:16px"
     body.appendChild(image)
   }
 
-  const title = document.createElement("h2")
-  title.textContent = personName
-  title.style.cssText = [
-    "margin:0 0 20px",
-    "font-size:22px",
-    "font-weight:700",
-    `color:${design.titleColor}`,
-    `border-bottom:1px solid ${design.accentColor || design.borderColor}`,
-    "padding-bottom:6px",
-  ].join(";")
-  body.appendChild(title)
+  // Export body only — no auto greeting / recipient title.
+  void personName
 
   const text = document.createElement("div")
   text.textContent = content

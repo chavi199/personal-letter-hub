@@ -1,8 +1,19 @@
-export type LetterFont = "rubik" | "heebo" | "assistant" | "frank" | "secular"
+export type LetterFont =
+  | "rubik"
+  | "heebo"
+  | "assistant"
+  | "frank"
+  | "secular"
+  | "alef"
+  | "david"
+  | "miriam"
+  | "varela"
+  | "bellefair"
+  | "karantina"
 export type LetterSize = "sm" | "md" | "lg"
 export type LetterAlign = "right" | "center" | "justify"
-export type LetterOrnament = "none" | "hearts" | "stars" | "leaves" | "rainbow"
-export type LetterWash = "flat" | "blush" | "sky" | "gold" | "mint" | "lilac" | "sunset" | "pastel"
+export type LetterOrnament = "none" | "hearts" | "stars" | "leaves" | "rainbow" | "masks" | "candles"
+export type LetterWash = "flat" | "blush" | "sky" | "gold" | "mint" | "lilac" | "sunset" | "pastel" | "carnival" | "candlelight"
 
 export interface LetterDesignConfig {
   theme: string
@@ -37,6 +48,12 @@ export const FONTS: { id: LetterFont; name: string; stack: string }[] = [
   { id: "assistant", name: "רך", stack: '"Assistant", sans-serif' },
   { id: "frank", name: "ספרותי", stack: '"Frank Ruhl Libre", serif' },
   { id: "secular", name: "בולט", stack: '"Secular One", sans-serif' },
+  { id: "alef", name: "אלף", stack: '"Alef", sans-serif' },
+  { id: "david", name: "דוד", stack: '"David Libre", serif' },
+  { id: "miriam", name: "מרים", stack: '"Miriam Libre", sans-serif' },
+  { id: "varela", name: "עגול", stack: '"Varela Round", sans-serif' },
+  { id: "bellefair", name: "אלגנטי", stack: '"Bellefair", serif' },
+  { id: "karantina", name: "כותרתי", stack: '"Karantina", sans-serif' },
 ]
 
 export const SIZES: { id: LetterSize; name: string; fontSize: string; lineHeight: string }[] = [
@@ -82,6 +99,16 @@ export const WASHES: { id: LetterWash; name: string; css: string }[] = [
     name: "פסטל",
     css: "radial-gradient(ellipse at 12% 8%, #ffcfe4 0%, transparent 40%), radial-gradient(ellipse at 88% 12%, #e3d2ff 0%, transparent 38%), radial-gradient(ellipse at 50% 100%, #ffe8b4 0%, transparent 46%), #fff7fb",
   },
+  {
+    id: "carnival",
+    name: "קרנבל",
+    css: "radial-gradient(ellipse at 8% 0%, #ffd6a5 0%, transparent 45%), radial-gradient(ellipse at 92% 8%, #ffb3c7 0%, transparent 42%), radial-gradient(ellipse at 50% 100%, #c7b3ff 0%, transparent 48%), #fff8f2",
+  },
+  {
+    id: "candlelight",
+    name: "אורות",
+    css: "radial-gradient(ellipse at 20% 0%, #ffe9b8 0%, transparent 50%), radial-gradient(ellipse at 85% 100%, #f0e2c4 0%, transparent 48%), #fbf6ea",
+  },
 ]
 
 export const ORNAMENTS: { id: LetterOrnament; name: string }[] = [
@@ -90,6 +117,8 @@ export const ORNAMENTS: { id: LetterOrnament; name: string }[] = [
   { id: "stars", name: "כוכבים" },
   { id: "leaves", name: "עלים" },
   { id: "rainbow", name: "קשת" },
+  { id: "masks", name: "מסיכות" },
+  { id: "candles", name: "אורות" },
 ]
 
 export const THEMES: LetterTheme[] = [
@@ -360,6 +389,42 @@ export const THEMES: LetterTheme[] = [
       ornament: "leaves",
       wash: "mint",
       accentColor: "#6aaa78",
+    },
+  },
+  {
+    id: "purim",
+    name: "פורים",
+    kind: "occasion",
+    config: {
+      theme: "purim",
+      backgroundColor: "#fff7f0",
+      textColor: "#4a2040",
+      titleColor: "#b43d6e",
+      borderStyle: "dashed",
+      borderColor: "#e8a45a",
+      fontFamily: "secular",
+      fontSize: "lg",
+      ornament: "masks",
+      wash: "carnival",
+      accentColor: "#d96b3c",
+    },
+  },
+  {
+    id: "shabbat",
+    name: "שבת",
+    kind: "occasion",
+    config: {
+      theme: "shabbat",
+      backgroundColor: "#fbf7ee",
+      textColor: "#3a3224",
+      titleColor: "#7a5c28",
+      borderStyle: "double",
+      borderColor: "#d4b97a",
+      fontFamily: "frank",
+      fontSize: "md",
+      ornament: "candles",
+      wash: "candlelight",
+      accentColor: "#c9a24a",
     },
   },
 ]

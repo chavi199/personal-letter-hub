@@ -2,12 +2,14 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  BookmarkPlus,
   CheckCircle,
   Circle,
   Clock,
   Focus,
   Loader2,
   Mail,
+  NotebookPen,
   Palette,
   Pause,
   PenLine,
@@ -30,11 +32,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchPersonById } from "@/lib/api/people";
 import { fetchGroupById } from "@/lib/api/groups";
 import { useUpdatePerson, useUpdateLetterStatus } from "@/hooks/use-people";
-import { useContentItems } from "@/hooks/use-content";
+import { useContentItems, useCreateContentItem } from "@/hooks/use-content";
 import { useAiEditor } from "@/hooks/use-ai-editor";
 import { useLetterVersions } from "@/hooks/use-letter-versions";
 import { LetterVersionsPanel } from "@/components/letter-versions-panel";
@@ -56,10 +64,18 @@ import {
 import { readLocalDesign, writeLocalDesign } from "@/lib/letter-design-storage";
 import type { LetterStatus } from "@/lib/supabase";
 
+type ContentKind = "opening" | "compliment" | "closing";
+
 const statusLabels: Record<LetterStatus, string> = {
   not_started: "לא התחיל",
   draft: "בטיוטה",
   completed: "הושלם",
+};
+
+const contentKindLabels: Record<ContentKind, string> = {
+  opening: "פתיחה",
+  compliment: "מחמאה",
+  closing: "סיום",
 };
 
 const FOCUS_PREF_KEY = "letter-hub-focus-pref";
@@ -113,6 +129,7 @@ function formatTimer(totalSeconds: number) {
 function LetterEditorPage() {
   const { person: initialPerson, group } = Route.useLoaderData();
   const { data: contentItems = [] } = useContentItems();
+  const createContentItem = useCreateContentItem();
   const updatePerson = useUpdatePerson(initialPerson.id, initialPerson.group_id);
   const updateStatus = useUpdateLetterStatus(initialPerson.id, initialPerson.group_id);
   const { setOpen: setSidebarOpen } = useSidebar();
@@ -129,10 +146,12 @@ function LetterEditorPage() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
+  const [personalCardOpen, setPersonalCardOpen] = useState(false);
   const [designConfig, setDesignConfig] = useState<LetterDesignConfig>(normalizeDesign(defaultDesign));
   const [focusMode, setFocusMode] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
   const designReady = useRef(false);
   const prevSidebarOpen = useRef(true);
   const aiEditor = useAiEditor();
@@ -245,11 +264,49 @@ function LetterEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedLetter, debouncedNotes, debouncedIdeas, debouncedTraits, debouncedInfo]);
 
+  const syncSelection = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) {
+      setSelectedText("");
+      return;
+    }
+    const text = ta.value.slice(ta.selectionStart, ta.selectionEnd).trim();
+    setSelectedText(text);
+  }, []);
+
   const insertContent = useCallback(
-    (text: string) => {
+    (text: string, kind: ContentKind) => {
       const ta = textareaRef.current;
+      const snippet = text.trim();
+      if (!snippet) return;
+
+      if (kind === "compliment") {
+        if (!ta) {
+          setLetterContent((prev) => {
+            if (!prev) return snippet;
+            return prev + (/\s$/.test(prev) ? "" : " ") + snippet;
+          });
+          return;
+        }
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const before = letterContent.slice(0, start);
+        const after = letterContent.slice(end);
+        const lead = before.length > 0 && !/\s$/.test(before) ? " " : "";
+        const trail = after.length > 0 && !/^\s/.test(after) ? " " : "";
+        const updated = before + lead + snippet + trail + after;
+        setLetterContent(updated);
+        requestAnimationFrame(() => {
+          ta.focus();
+          const pos = (before + lead + snippet).length;
+          ta.setSelectionRange(pos, pos);
+          setSelectedText("");
+        });
+        return;
+      }
+
       if (!ta) {
-        setLetterContent((prev) => prev + (prev ? "\n" : "") + text);
+        setLetterContent((prev) => prev + (prev ? "\n" : "") + snippet + "\n");
         return;
       }
       const start = ta.selectionStart;
@@ -257,15 +314,37 @@ function LetterEditorPage() {
       const before = letterContent.slice(0, start);
       const after = letterContent.slice(end);
       const separator = before.length > 0 && !before.endsWith("\n") ? "\n" : "";
-      const updated = before + separator + text + "\n" + after;
+      const updated = before + separator + snippet + "\n" + after;
       setLetterContent(updated);
       requestAnimationFrame(() => {
         ta.focus();
-        const pos = (before + separator + text + "\n").length;
+        const pos = (before + separator + snippet + "\n").length;
         ta.setSelectionRange(pos, pos);
+        setSelectedText("");
       });
     },
     [letterContent],
+  );
+
+  const saveSelectionToBank = useCallback(
+    (kind: ContentKind) => {
+      const text = selectedText.trim();
+      if (!text) {
+        toast.error("סמנו קודם מילים במכתב");
+        return;
+      }
+      createContentItem.mutate(
+        { type: kind, content: text },
+        {
+          onSuccess: () => {
+            toast.success(`נשמר למאגר כ${contentKindLabels[kind]}`);
+            setSelectedText("");
+          },
+          onError: () => toast.error("שגיאה בשמירה למאגר"),
+        },
+      );
+    },
+    [createContentItem, selectedText],
   );
 
   const handleStatusChange = async (newStatus: LetterStatus) => {
@@ -286,6 +365,7 @@ function LetterEditorPage() {
   const openings = contentItems.filter((i) => i.type === "opening");
   const compliments = contentItems.filter((i) => i.type === "compliment");
   const closings = contentItems.filter((i) => i.type === "closing");
+  const hasPersonalNotes = Boolean(notes.trim() || ideas.trim() || traits.trim() || personalInfo.trim());
 
   const letterCard = (
     <LivingLetterPaper
@@ -314,8 +394,8 @@ function LetterEditorPage() {
         />
       )}
       <div className="relative">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm" style={{ color: designConfig.titleColor }}>
               {aiEditor.state === "review" ? "מקור" : "המכתב"}
             </CardTitle>
@@ -341,10 +421,15 @@ function LetterEditorPage() {
               )}
             </div>
           </div>
+          {aiEditor.state !== "review" && (
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+              כתבו בחופשיות · סמנו מילים לשמירה למאגר · מחמאות נכנסות באותה שורה
+            </p>
+          )}
           {!letterContent.trim() && aiEditor.state !== "review" && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                עדיין אין מכתב — כתבו כאן ישירות, או בחרו פתיחה/מחמאה מהמאגר בצד. אפשר גם לרשום הערות בכרטיס האישי לפני שמתחילים.
+                התחילו מפתיחה מהמאגר, או כתבו ישירות. הערות אישיות נפתחות בלחיצה על ״כרטיס אישי״.
               </p>
               <Button
                 type="button"
@@ -357,15 +442,44 @@ function LetterEditorPage() {
               </Button>
             </div>
           )}
+          {selectedText && aiEditor.state !== "review" && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-background/80 p-2 shadow-sm backdrop-blur">
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <BookmarkPlus className="h-3.5 w-3.5" />
+                שמור בחירה כ־
+              </span>
+              {(["opening", "compliment", "closing"] as ContentKind[]).map((kind) => (
+                <Button
+                  key={kind}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={createContentItem.isPending}
+                  onClick={() => saveSelectionToBank(kind)}
+                >
+                  {contentKindLabels[kind]}
+                </Button>
+              ))}
+              <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedText("")}>
+                ביטול
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Textarea
             ref={textareaRef}
             readOnly={aiEditor.state === "review"}
             value={letterContent}
-            onChange={(e) => setLetterContent(e.target.value)}
-            placeholder="התחילו לכתוב כאן — או בחרו משפט מהמאגר בצד..."
-            className={`write-presence-caret min-h-[500px] resize-none leading-relaxed${aiEditor.state === "review" ? " bg-muted/40" : ""}`}
+            onChange={(e) => {
+              setLetterContent(e.target.value);
+              syncSelection();
+            }}
+            onSelect={syncSelection}
+            onKeyUp={syncSelection}
+            onMouseUp={syncSelection}
+            placeholder={"כתבו כאן בנחת...\nאפשר לבחור פתיחה מהמאגר, ואז להוסיף מחמאות בתוך המשפט."}
+            className={`write-presence-caret min-h-[560px] resize-none border-0 bg-transparent px-1 py-2 leading-[1.9] shadow-none focus-visible:ring-0${aiEditor.state === "review" ? " bg-muted/40" : ""}`}
             style={{
               backgroundColor: "transparent",
               color: designConfig.textColor,
@@ -446,7 +560,7 @@ function LetterEditorPage() {
               >
                 {statusLabels[status]}
               </Badge>
-              <span className="text-xs">הערות אישיות → כתיבה → גרסה → עיצוב</span>
+              <span className="text-xs">כתיבה → שמירת גרסה → עיצוב → ייצוא</span>
             </div>
           </div>
         </div>
@@ -464,6 +578,20 @@ function LetterEditorPage() {
             <Button variant="outline" size="sm" onClick={enterFocusMode}>
               <Focus className="h-4 w-4 ms-1" />
               מצב פוקוס
+            </Button>
+          )}
+
+          {!focusMode && (
+            <Button
+              variant={personalCardOpen ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setPersonalCardOpen(true)}
+            >
+              <NotebookPen className="h-4 w-4 ms-1" />
+              כרטיס אישי
+              {hasPersonalNotes && (
+                <span className="ms-1 inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+              )}
             </Button>
           )}
 
@@ -496,8 +624,8 @@ function LetterEditorPage() {
               onClick={() => setVersionsOpen(true)}
               title={
                 versions.length === 0
-                  ? "שמרו גרסה כדי לשמור ניסוח ולחזור אליו אחר כך"
-                  : "צפו ושמרו גרסאות של המכתב"
+                  ? "שמרו גרסה ידנית כדי לשמור ניסוח ולחזור אליו"
+                  : `${versions.length} גרסאות שמורות · הטיוטה הנוכחית נשמרת אוטומטית`
               }
             >
               <Clock className="h-4 w-4 ms-1" />
@@ -536,15 +664,17 @@ function LetterEditorPage() {
           focusMode
             ? "grid-cols-1 max-w-3xl mx-auto"
             : aiEditor.state === "review"
-              ? "lg:grid-cols-[280px_1fr_1fr]"
-              : "lg:grid-cols-[280px_1fr_280px]"
+              ? "lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)_minmax(280px,1fr)]"
+              : "lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]"
         }`}
       >
         {!focusMode && (
-          <Card>
+          <Card className="min-h-[640px]">
             <CardHeader>
               <CardTitle className="text-sm">מאגר תוכן</CardTitle>
-              <p className="text-xs text-muted-foreground">לחץ להוספה למכתב</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                פתיחה/סיום יורדים שורה · מחמאה נכנסת באותה שורה
+              </p>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="opening">
@@ -554,23 +684,25 @@ function LetterEditorPage() {
                   <TabsTrigger value="closing">סיומים</TabsTrigger>
                 </TabsList>
 
-                {[
-                  { key: "opening", items: openings },
-                  { key: "compliment", items: compliments },
-                  { key: "closing", items: closings },
-                ].map(({ key, items }) => (
-                  <TabsContent key={key} value={key} className="mt-2 space-y-1.5">
+                {(
+                  [
+                    { key: "opening" as const, items: openings },
+                    { key: "compliment" as const, items: compliments },
+                    { key: "closing" as const, items: closings },
+                  ]
+                ).map(({ key, items }) => (
+                  <TabsContent key={key} value={key} className="mt-2 max-h-[520px] space-y-1.5 overflow-y-auto pe-1">
                     {items.length === 0 ? (
                       <p className="py-4 text-center text-xs text-muted-foreground">
-                        אין פריטים — הוסף בספריית התוכן
+                        אין פריטים — סמנו מילים במכתב ושמרו למאגר, או הוסיפו בספריית התוכן
                       </p>
                     ) : (
                       items.map((item) => (
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => insertContent(item.content)}
-                          className="w-full rounded-md border p-2 text-start text-sm hover:bg-accent transition-colors"
+                          onClick={() => insertContent(item.content, key)}
+                          className="w-full rounded-md border p-2.5 text-start text-sm hover:bg-accent transition-colors"
                         >
                           {item.category && (
                             <span className="mb-1 block text-xs text-muted-foreground">
@@ -591,7 +723,7 @@ function LetterEditorPage() {
         {letterCard}
 
         {!focusMode &&
-          (aiEditor.state === "review" ? (
+          aiEditor.state === "review" && (
             <Card className="border-purple-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -623,39 +755,45 @@ function LetterEditorPage() {
                 />
               </CardContent>
             </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">כרטיס אישי</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  הערות ורעיונות לעצמך בלבד — לא מופיעים במכתב ולא מיוצאים.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs">הערות</Label>
-                  <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
-                </div>
-                <div>
-                  <Label className="text-xs">רעיונות</Label>
-                  <Textarea rows={3} value={ideas} onChange={(e) => setIdeas(e.target.value)} />
-                </div>
-                <div>
-                  <Label className="text-xs">תכונות</Label>
-                  <Textarea rows={2} value={traits} onChange={(e) => setTraits(e.target.value)} />
-                </div>
-                <div>
-                  <Label className="text-xs">מידע אישי</Label>
-                  <Textarea
-                    rows={2}
-                    value={personalInfo}
-                    onChange={(e) => setPersonalInfo(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          )}
       </div>
+
+      <Sheet open={personalCardOpen} onOpenChange={setPersonalCardOpen}>
+        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[420px]">
+          <SheetHeader className="border-b p-4">
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <NotebookPen className="h-4 w-4" />
+              כרטיס אישי — {initialPerson.name}
+            </SheetTitle>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              הערות ורעיונות לעצמך בלבד — לא מופיעים במכתב ולא מיוצאים.
+            </p>
+          </SheetHeader>
+          <div className="space-y-4 overflow-y-auto p-4">
+            <div>
+              <Label className="text-xs">הערות</Label>
+              <Textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">רעיונות</Label>
+              <Textarea rows={4} value={ideas} onChange={(e) => setIdeas(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">תכונות</Label>
+              <Textarea rows={3} value={traits} onChange={(e) => setTraits(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">מידע אישי</Label>
+              <Textarea
+                rows={3}
+                value={personalInfo}
+                onChange={(e) => setPersonalInfo(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ExportLetterPanel
         open={exportOpen}

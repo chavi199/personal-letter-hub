@@ -156,24 +156,30 @@ export function LetterVersionsPanel({
             <Clock className="h-4 w-4" />
             גרסאות שמורות
           </SheetTitle>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            כתיבה → שמירת גרסה → שיפור. אפשר לנסות ניסוחים ולחזור לגרסה קודמת בלי פחד.
-          </p>
+          <div className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
+            <p>
+              <span className="font-medium text-foreground">טיוטה נוכחית</span> נשמרת אוטומטית בזמן הכתיבה.
+            </p>
+            <p>
+              <span className="font-medium text-foreground">גרסה שמורה</span> היא עותק ידני של הטקסט והעיצוב — אפשר לשחזר, להשוות או לנעוץ.
+            </p>
+          </div>
         </SheetHeader>
 
         <div className="space-y-2 border-b p-4">
+          <Label className="text-xs">שמירת גרסה חדשה מהמצב הנוכחי</Label>
           <Input
             value={versionName}
             onChange={(e) => setVersionName(e.target.value)}
             placeholder="שם לגרסה, למשל טיוטה רכה"
           />
           <Button className="w-full" variant="outline" onClick={handleSave} disabled={saveVersion.isPending}>
-            שמור עותק של המכתב והעיצוב
+            שמור גרסה עכשיו
           </Button>
           {ordered.length > 0 && (
             <Button className="w-full" variant="secondary" onClick={() => openCompare()}>
               <GitCompareArrows className="h-4 w-4 ms-1" />
-              השוואת גרסאות
+              השווה בין גרסאות
             </Button>
           )}
         </div>
@@ -186,15 +192,18 @@ export function LetterVersionsPanel({
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
             <p className="text-sm font-medium">עדיין אין גרסאות שמורות</p>
             <p className="max-w-xs text-sm text-muted-foreground leading-relaxed">
-              שמרו גרסה כדי לשמור ניסוח ולחזור אליו אחר כך. כל שמירה כוללת גם את הטקסט וגם את העיצוב.
+              כשאת מרוצה מניסוח — שמרי גרסה. אחר כך אפשר לנסות ניסוח אחר ולחזור לכאן בלחיצה אחת.
             </p>
           </div>
         ) : (
           <ScrollArea className="flex-1">
             <div className="space-y-1 p-2">
-              {ordered.map((v) => {
+              <p className="px-2 pb-1 text-[11px] text-muted-foreground">
+                {ordered.length} גרסאות · לחצי לפתיחת תצוגה ושחזור
+              </p>
+              {ordered.map((v, index) => {
                 const design = v.design_config
-                const title = design?.label || format(new Date(v.created_at), "d בMMMM yyyy, HH:mm", { locale: he })
+                const title = design?.label || `גרסה ${ordered.length - index}`
                 return (
                 <div
                   key={v.id}
@@ -210,6 +219,11 @@ export function LetterVersionsPanel({
                         />
                       )}
                       <span className="truncate text-sm font-medium">{title}</span>
+                      {design?.pinned && (
+                        <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                          נעוץ
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <button
@@ -336,7 +350,7 @@ export function LetterVersionsPanel({
                     </ul>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">אין שינוי בעיצוב (theme / wash / font).</p>
+                  <p className="text-xs text-muted-foreground">אין שינוי בעיצוב בין הגרסאות.</p>
                 )}
                 <TextDiffView parts={compare.parts} />
               </>
@@ -422,9 +436,9 @@ function VersionPreview({
       <div className="flex gap-2">
         <Button size="sm" className="flex-1" onClick={onRestore}>
           <RotateCcw className="h-3.5 w-3.5 ms-1" />
-          החלף במכתב הנוכחי
+          שחזר גרסה זו לעורך
         </Button>
-        <Button size="sm" variant="outline" onClick={onCompare}>
+        <Button size="sm" variant="outline" onClick={onCompare} title="השווה לנוכחית">
           <GitCompareArrows className="h-3.5 w-3.5" />
         </Button>
       </div>

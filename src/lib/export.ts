@@ -1,6 +1,5 @@
 import {
   AlignmentType,
-  BorderStyle,
   Document,
   Packer,
   PageBreak,
@@ -64,6 +63,12 @@ function wordFont(font?: LetterFont): string {
   if (font === "assistant") return "Assistant"
   if (font === "frank") return "Frank Ruhl Libre"
   if (font === "secular") return "Secular One"
+  if (font === "alef") return "Alef"
+  if (font === "david") return "David Libre"
+  if (font === "miriam") return "Miriam Libre"
+  if (font === "varela") return "Varela Round"
+  if (font === "bellefair") return "Bellefair"
+  if (font === "karantina") return "Karantina"
   return "Rubik"
 }
 
@@ -82,21 +87,13 @@ function wordAlign(design: LetterDesignConfig) {
 function letterParagraphs(person: DesignedLetter, withBreak: boolean): Paragraph[] {
   const design = designOf(person.design)
   const color = design.textColor.replace("#", "")
-  const title = design.titleColor.replace("#", "")
   const paper = design.backgroundColor.replace("#", "")
-  const accent = (design.accentColor || design.borderColor).replace("#", "")
   const font = wordFont(design.fontFamily)
   const size = wordSize(design.fontSize)
   const shading = { type: ShadingType.CLEAR, fill: paper }
+  // Export letter body only — filename still uses person.name.
+  void person.name
   const paragraphs = [
-    new Paragraph({
-      bidirectional: true,
-      alignment: wordAlign(design),
-      shading,
-      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: accent, space: 4 } },
-      children: [new TextRun({ text: person.name, bold: true, font, size: size + 6, color: title, rightToLeft: true })],
-    }),
-    new Paragraph({ shading, children: [new TextRun("")] }),
     ...person.content.split("\n").map(
       (line) =>
         new Paragraph({
