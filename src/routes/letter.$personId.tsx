@@ -68,6 +68,7 @@ import {
   extractPersonPlaceholder,
   fillPersonPlaceholder,
   PERSON_PLACEHOLDER,
+  personPlaceholderHintFor,
 } from "@/lib/person-placeholder";
 import type { LetterStatus } from "@/lib/supabase";
 
@@ -388,7 +389,7 @@ function LetterEditorPage() {
           onSuccess: () => {
             toast.success(
               templated.includes(PERSON_PLACEHOLDER)
-                ? `נשמר למאגר כ${contentKindLabels[kind]} (עם ${PERSON_PLACEHOLDER} לשם)`
+                ? `נשמר למאגר כ${contentKindLabels[kind]} — השם הוחלף ב־XX (שם האדם)`
                 : `נשמר למאגר כ${contentKindLabels[kind]}`,
             );
             setSelectedText("");
@@ -479,13 +480,13 @@ function LetterEditorPage() {
           </div>
           {aiEditor.state !== "review" && (
             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              כתבו בחופשיות · {PERSON_PLACEHOLDER} במאגר = {initialPerson.name} · מחמאות באותה שורה
+              כתבו בחופשיות · מחמאות נכנסות באותה שורה · {personPlaceholderHintFor(initialPerson.name)}
             </p>
           )}
           {!letterContent.trim() && aiEditor.state !== "review" && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                התחילו מפתיחה מהמאגר, או כתבו ישירות. הערות אישיות נפתחות בלחיצה על ״כרטיס אישי״.
+                התחילו מפתיחה מהמאגר (אפשר עם XX במקום השם), או כתבו ישירות. הערות אישיות — ב״כרטיס אישי״.
               </p>
               <Button
                 type="button"
@@ -499,26 +500,31 @@ function LetterEditorPage() {
             </div>
           )}
           {selectedText && aiEditor.state !== "review" && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-background/80 p-2 shadow-sm backdrop-blur">
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <BookmarkPlus className="h-3.5 w-3.5" />
-                שמור בחירה כ־
-              </span>
-              {(["opening", "compliment", "closing"] as ContentKind[]).map((kind) => (
-                <Button
-                  key={kind}
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={createContentItem.isPending}
-                  onClick={() => saveSelectionToBank(kind)}
-                >
-                  {contentKindLabels[kind]}
+            <div className="mt-3 space-y-1.5 rounded-xl border border-primary/20 bg-background/80 p-2 shadow-sm backdrop-blur">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <BookmarkPlus className="h-3.5 w-3.5" />
+                  שמור בחירה כ־
+                </span>
+                {(["opening", "compliment", "closing"] as ContentKind[]).map((kind) => (
+                  <Button
+                    key={kind}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={createContentItem.isPending}
+                    onClick={() => saveSelectionToBank(kind)}
+                  >
+                    {contentKindLabels[kind]}
+                  </Button>
+                ))}
+                <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedText("")}>
+                  ביטול
                 </Button>
-              ))}
-              <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedText("")}>
-                ביטול
-              </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                אם הבחירה כוללת את השם «{initialPerson.name}», הוא יישמר במאגר כ־XX — כדי שאפשר יהיה להשתמש באותה משפט גם לאנשים אחרים.
+              </p>
             </div>
           )}
         </CardHeader>
@@ -731,7 +737,10 @@ function LetterEditorPage() {
             <CardHeader>
               <CardTitle className="text-sm">מאגר תוכן</CardTitle>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {PERSON_PLACEHOLDER} → {initialPerson.name} · פתיחה/סיום יורדים שורה · מחמאה באותה שורה
+                {personPlaceholderHintFor(initialPerson.name)}
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                פתיחה/סיום יורדים שורה · מחמאה נכנסת באותה שורה
               </p>
             </CardHeader>
             <CardContent>
@@ -770,7 +779,7 @@ function LetterEditorPage() {
                           {fillPersonPlaceholder(item.content, initialPerson.name)}
                           {item.content.includes(PERSON_PLACEHOLDER) && (
                             <span className="mt-1 block text-[10px] text-muted-foreground">
-                              תבנית עם {PERSON_PLACEHOLDER}
+                              כולל XX (= שם האדם)
                             </span>
                           )}
                         </button>

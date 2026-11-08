@@ -258,7 +258,7 @@ function ContentLibraryPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">ספריית תוכן</h1>
           <p className="text-sm text-muted-foreground">
-            משפטים מוכנים שאפשר להכניס למכתב בלחיצה — חוסך זמן ושומר על טון אחיד
+            משפטים מוכנים להכנסה למכתב בלחיצה. כתבו XX במקום שם האדם — במכתב זה יוחלף אוטומטית בשם שלה/שלו.
           </p>
         </div>
         <div className="flex gap-2">
@@ -316,7 +316,12 @@ function ContentLibraryPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
-            <CardTitle className="text-base">ניהול המאגר</CardTitle>
+            <div>
+              <CardTitle className="text-base">ניהול המאגר</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                XX מייצג את שם האדם במכתב (לא שם קבוע). בהוספה למכתב הוא מתחלף אוטומטית.
+              </p>
+            </div>
             <div className="relative w-64">
               <Search className="absolute end-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -420,8 +425,8 @@ function ContentLibraryPage() {
                 {editingItem ? "עריכת פריט" : `הוסף ${typeLabels[activeTab]}`}
               </DialogTitle>
               <DialogDescription>
-                אפשר לכתוב XX במקום השם — בהוספה למכתב זה יוחלף אוטומטית בשם האדם.
-                {activeTab === "compliment" ? " אפשר גם קטגוריה (אישיות, עבודה…)." : ""}
+                XX = שם האדם שכותבים לו. לדוגמה: «XX היקרה» במכתב לחוי יהפוך ל«חוי היקרה».
+                {activeTab === "compliment" ? " אפשר גם להוסיף קטגוריה (אישיות, עבודה…)." : ""}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-4">
@@ -435,6 +440,9 @@ function ContentLibraryPage() {
                   placeholder="לדוגמה: XX היקרה,"
                   autoFocus
                 />
+                <p className="text-xs text-muted-foreground">
+                  רמז: השתמשי ב־XX במקום שם ספציפי, כדי שהמשפט יתאים לכל אדם במכתבים שונים.
+                </p>
               </div>
               {activeTab === "compliment" && (
                 <div className="space-y-2">
