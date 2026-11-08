@@ -9,6 +9,7 @@ import {
   type LetterDesignConfig,
   type LetterOrnament,
 } from "./design-themes"
+import { ensureLetterFont } from "./letter-fonts"
 
 const PAGE_WIDTH = 794
 const PAGE_HEIGHT = 1123
@@ -237,6 +238,7 @@ function buildPage(
 }
 
 async function ensureFont(design: LetterDesignConfig) {
+  await ensureLetterFont(design.fontFamily)
   const family = fontStack(design.fontFamily).split(",")[0]?.replaceAll('"', "").trim()
   if (!family) return
   await Promise.all([

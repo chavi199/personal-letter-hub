@@ -31,6 +31,8 @@ import {
 } from "@/lib/design-themes"
 import { useSaveVersion } from "@/hooks/use-letter-versions"
 import { useUploadDesignAsset, useDeleteDesignAsset } from "@/hooks/use-design-assets"
+import { useLetterFont } from "@/hooks/use-letter-font"
+import { ensureLetterFont } from "@/lib/letter-fonts"
 
 interface Props {
   open: boolean
@@ -52,6 +54,7 @@ export function LetterDesignPanel({
   const [local, setLocal] = useState<LetterDesignConfig>(normalizeDesign(designConfig))
   const [versionName, setVersionName] = useState("")
   const wasOpen = useRef(false)
+  useLetterFont(local.fontFamily)
 
   useEffect(() => {
     if (open && !wasOpen.current) setLocal(normalizeDesign(designConfig))
@@ -203,7 +206,11 @@ export function LetterDesignPanel({
               <Label className="text-xs text-muted-foreground">גופן / סגנון כתיבה</Label>
               <Select
                 value={local.fontFamily ?? "rubik"}
-                onValueChange={(value) => update({ fontFamily: value as LetterFont, theme: "custom" })}
+                onValueChange={(value) => {
+                  const next = value as LetterFont
+                  void ensureLetterFont(next)
+                  update({ fontFamily: next, theme: "custom" })
+                }}
               >
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
@@ -211,13 +218,17 @@ export function LetterDesignPanel({
                 <SelectContent className="max-h-72">
                   {FONTS.map((font) => (
                     <SelectItem key={font.id} value={font.id}>
-                      <span className="text-sm" style={{ fontFamily: font.stack }}>
-                        {font.name} — דוגמה לכתיבה
-                      </span>
+                      <span className="text-sm">{font.name}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p
+                className="rounded-md border bg-muted/40 px-2 py-1.5 text-sm"
+                style={{ fontFamily: fontStack(local.fontFamily) }}
+              >
+                דוגמה: שלום, איזה כיף לקבל מכתב.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">

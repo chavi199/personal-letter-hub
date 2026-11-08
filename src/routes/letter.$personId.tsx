@@ -44,6 +44,7 @@ import { fetchGroupById } from "@/lib/api/groups";
 import { useUpdatePerson, useUpdateLetterStatus } from "@/hooks/use-people";
 import { useContentItems, useCreateContentItem } from "@/hooks/use-content";
 import { useAiEditor } from "@/hooks/use-ai-editor";
+import { useLetterFont } from "@/hooks/use-letter-font";
 import { useLetterVersions } from "@/hooks/use-letter-versions";
 import { LetterVersionsPanel } from "@/components/letter-versions-panel";
 import { ExportLetterPanel } from "@/components/export-letter-panel";
@@ -51,6 +52,7 @@ import { LetterDesignPanel } from "@/components/letter-design-panel";
 import { LetterDecor } from "@/components/letter-decor";
 import { LivingLetterPaper } from "@/components/living-letter-paper";
 import { SoftConfetti } from "@/components/soft-confetti";
+import { EmojiPickerButton } from "@/components/emoji-picker-button";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   defaultDesign,
@@ -62,6 +64,11 @@ import {
   type LetterDesignConfig,
 } from "@/lib/design-themes";
 import { readLocalDesign, writeLocalDesign } from "@/lib/letter-design-storage";
+import {
+  extractPersonPlaceholder,
+  fillPersonPlaceholder,
+  PERSON_PLACEHOLDER,
+} from "@/lib/person-placeholder";
 import type { LetterStatus } from "@/lib/supabase";
 
 type ContentKind = "opening" | "compliment" | "closing";
@@ -158,6 +165,7 @@ function LetterEditorPage() {
   const prevSidebarOpen = useRef(true);
   const aiEditor = useAiEditor();
   const { data: versions = [] } = useLetterVersions(initialPerson.id);
+  useLetterFont(designConfig.fontFamily);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -287,16 +295,17 @@ function LetterEditorPage() {
     setSelectedText(text);
   }, []);
 
-  const insertContent = useCallback(
-    (text: string, kind: ContentKind) => {
+  const insertAtCaret = useCallback(
+    (raw: string, mode: "inline" | "block" | "emoji") => {
       const ta = textareaRef.current;
-      const snippet = text.trim();
+      const snippet = raw;
       if (!snippet) return;
 
-      if (kind === "compliment") {
+      if (mode === "inline" || mode === "emoji") {
         if (!ta) {
           setLetterContent((prev) => {
             if (!prev) return snippet;
+            if (mode === "emoji") return prev + snippet;
             return prev + (/\s$/.test(prev) ? "" : " ") + snippet;
           });
           return;
@@ -305,8 +314,18 @@ function LetterEditorPage() {
         const end = ta.selectionEnd;
         const before = letterContent.slice(0, start);
         const after = letterContent.slice(end);
-        const lead = before.length > 0 && !/\s$/.test(before) ? " " : "";
-        const trail = after.length > 0 && !/^\s/.test(after) ? " " : "";
+        const lead =
+          mode === "emoji"
+            ? ""
+            : before.length > 0 && !/\s$/.test(before)
+              ? " "
+              : "";
+        const trail =
+          mode === "emoji"
+            ? ""
+            : after.length > 0 && !/^\s/.test(after)
+              ? " "
+              : "";
         const updated = before + lead + snippet + trail + after;
         setLetterContent(updated);
         requestAnimationFrame(() => {
@@ -339,6 +358,22 @@ function LetterEditorPage() {
     [letterContent],
   );
 
+  const insertContent = useCallback(
+    (text: string, kind: ContentKind) => {
+      const filled = fillPersonPlaceholder(text.trim(), initialPerson.name);
+      if (!filled) return;
+      insertAtCaret(filled, kind === "compliment" ? "inline" : "block");
+    },
+    [initialPerson.name, insertAtCaret],
+  );
+
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      insertAtCaret(emoji, "emoji");
+    },
+    [insertAtCaret],
+  );
+
   const saveSelectionToBank = useCallback(
     (kind: ContentKind) => {
       const text = selectedText.trim();
@@ -346,18 +381,23 @@ function LetterEditorPage() {
         toast.error("סמנו קודם מילים במכתב");
         return;
       }
+      const templated = extractPersonPlaceholder(text, initialPerson.name);
       createContentItem.mutate(
-        { type: kind, content: text },
+        { type: kind, content: templated },
         {
           onSuccess: () => {
-            toast.success(`נשמר למאגר כ${contentKindLabels[kind]}`);
+            toast.success(
+              templated.includes(PERSON_PLACEHOLDER)
+                ? `נשמר למאגר כ${contentKindLabels[kind]} (עם ${PERSON_PLACEHOLDER} לשם)`
+                : `נשמר למאגר כ${contentKindLabels[kind]}`,
+            );
             setSelectedText("");
           },
           onError: () => toast.error("שגיאה בשמירה למאגר"),
         },
       );
     },
-    [createContentItem, selectedText],
+    [createContentItem, initialPerson.name, selectedText],
   );
 
   const handleStatusChange = async (newStatus: LetterStatus) => {
@@ -418,25 +458,28 @@ function LetterEditorPage() {
               )}
               <span className="text-xs text-muted-foreground">{letterContent.length} תווים</span>
               {aiEditor.state !== "review" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!letterContent.trim() || aiEditor.state === "loading"}
-                  onClick={() => aiEditor.run(letterContent)}
-                >
-                  {aiEditor.state === "loading" ? (
-                    <Loader2 className="h-3.5 w-3.5 ms-1 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5 ms-1 text-purple-500" />
-                  )}
-                  AI Edit
-                </Button>
+                <>
+                  <EmojiPickerButton onPick={insertEmoji} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!letterContent.trim() || aiEditor.state === "loading"}
+                    onClick={() => aiEditor.run(letterContent)}
+                  >
+                    {aiEditor.state === "loading" ? (
+                      <Loader2 className="h-3.5 w-3.5 ms-1 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5 ms-1 text-purple-500" />
+                    )}
+                    AI Edit
+                  </Button>
+                </>
               )}
             </div>
           </div>
           {aiEditor.state !== "review" && (
             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              כתבו בחופשיות · סמנו מילים לשמירה למאגר · מחמאות נכנסות באותה שורה
+              כתבו בחופשיות · {PERSON_PLACEHOLDER} במאגר = {initialPerson.name} · מחמאות באותה שורה
             </p>
           )}
           {!letterContent.trim() && aiEditor.state !== "review" && (
@@ -688,7 +731,7 @@ function LetterEditorPage() {
             <CardHeader>
               <CardTitle className="text-sm">מאגר תוכן</CardTitle>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                פתיחה/סיום יורדים שורה · מחמאה נכנסת באותה שורה
+                {PERSON_PLACEHOLDER} → {initialPerson.name} · פתיחה/סיום יורדים שורה · מחמאה באותה שורה
               </p>
             </CardHeader>
             <CardContent>
@@ -724,7 +767,12 @@ function LetterEditorPage() {
                               {item.category}
                             </span>
                           )}
-                          {item.content}
+                          {fillPersonPlaceholder(item.content, initialPerson.name)}
+                          {item.content.includes(PERSON_PLACEHOLDER) && (
+                            <span className="mt-1 block text-[10px] text-muted-foreground">
+                              תבנית עם {PERSON_PLACEHOLDER}
+                            </span>
+                          )}
                         </button>
                       ))
                     )}

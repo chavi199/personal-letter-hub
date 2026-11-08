@@ -420,9 +420,8 @@ function ContentLibraryPage() {
                 {editingItem ? "עריכת פריט" : `הוסף ${typeLabels[activeTab]}`}
               </DialogTitle>
               <DialogDescription>
-                {activeTab === "compliment"
-                  ? "ניתן להוסיף גם קטגוריה (אישיות, עבודה, כללי...)"
-                  : "הזן את תוכן הפריט."}
+                אפשר לכתוב XX במקום השם — בהוספה למכתב זה יוחלף אוטומטית בשם האדם.
+                {activeTab === "compliment" ? " אפשר גם קטגוריה (אישיות, עבודה…)." : ""}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-4">
@@ -433,6 +432,7 @@ function ContentLibraryPage() {
                   value={formContent}
                   onChange={(e) => setFormContent(e.target.value)}
                   rows={3}
+                  placeholder="לדוגמה: XX היקרה,"
                   autoFocus
                 />
               </div>

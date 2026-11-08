@@ -10,7 +10,29 @@ export type LetterFont =
   | "varela"
   | "bellefair"
   | "karantina"
+  | "notoSans"
+  | "notoSerif"
+  | "ibmPlex"
+  | "arimo"
+  | "tinos"
+  | "suez"
+  | "amatic"
+  | "fredoka"
+  | "openSans"
+  | "playpen"
+  | "handjet"
+  | "bonaNova"
+  | "cousine"
 export type LetterSize = "sm" | "md" | "lg"
+
+export type LetterFontDef = {
+  id: LetterFont
+  name: string
+  family: string
+  stack: string
+  /** Google Fonts CSS2 family=… fragment (without the family= prefix). */
+  google: string
+}
 export type LetterAlign = "right" | "center" | "justify"
 export type LetterOrnament = "none" | "hearts" | "stars" | "leaves" | "rainbow" | "masks" | "candles"
 export type LetterWash = "flat" | "blush" | "sky" | "gold" | "mint" | "lilac" | "sunset" | "pastel" | "carnival" | "candlelight"
@@ -42,18 +64,39 @@ export interface LetterTheme {
   config: LetterDesignConfig
 }
 
-export const FONTS: { id: LetterFont; name: string; stack: string }[] = [
-  { id: "rubik", name: "רגיל", stack: '"Rubik", sans-serif' },
-  { id: "heebo", name: "נקי", stack: '"Heebo", sans-serif' },
-  { id: "assistant", name: "רך", stack: '"Assistant", sans-serif' },
-  { id: "frank", name: "ספרותי", stack: '"Frank Ruhl Libre", serif' },
-  { id: "secular", name: "בולט", stack: '"Secular One", sans-serif' },
-  { id: "alef", name: "אלף", stack: '"Alef", sans-serif' },
-  { id: "david", name: "דוד", stack: '"David Libre", serif' },
-  { id: "miriam", name: "מרים", stack: '"Miriam Libre", sans-serif' },
-  { id: "varela", name: "עגול", stack: '"Varela Round", sans-serif' },
-  { id: "bellefair", name: "אלגנטי", stack: '"Bellefair", serif' },
-  { id: "karantina", name: "כותרתי", stack: '"Karantina", sans-serif' },
+function def(id: LetterFont, name: string, family: string, google: string): LetterFontDef {
+  return { id, name, family, google, stack: `"${family}", sans-serif` }
+}
+
+function serif(id: LetterFont, name: string, family: string, google: string): LetterFontDef {
+  return { id, name, family, google, stack: `"${family}", serif` }
+}
+
+export const FONTS: LetterFontDef[] = [
+  def("rubik", "רגיל", "Rubik", "Rubik:wght@400;500;600;700"),
+  def("heebo", "נקי", "Heebo", "Heebo:wght@400;600;700"),
+  def("assistant", "רך", "Assistant", "Assistant:wght@400;600;700"),
+  serif("frank", "ספרותי", "Frank Ruhl Libre", "Frank+Ruhl+Libre:wght@400;700"),
+  def("secular", "בולט", "Secular One", "Secular+One"),
+  def("alef", "אלף", "Alef", "Alef:wght@400;700"),
+  serif("david", "דוד", "David Libre", "David+Libre:wght@400;700"),
+  def("miriam", "מרים", "Miriam Libre", "Miriam+Libre:wght@400;700"),
+  def("varela", "עגול", "Varela Round", "Varela+Round"),
+  serif("bellefair", "אלגנטי", "Bellefair", "Bellefair"),
+  def("karantina", "כותרתי", "Karantina", "Karantina:wght@400;700"),
+  def("notoSans", "נוטו", "Noto Sans Hebrew", "Noto+Sans+Hebrew:wght@400;600;700"),
+  serif("notoSerif", "נוטו סריף", "Noto Serif Hebrew", "Noto+Serif+Hebrew:wght@400;600;700"),
+  def("ibmPlex", "פלקס", "IBM Plex Sans Hebrew", "IBM+Plex+Sans+Hebrew:wght@400;600;700"),
+  def("arimo", "ארימו", "Arimo", "Arimo:wght@400;600;700"),
+  serif("tinos", "טינוס", "Tinos", "Tinos:wght@400;700"),
+  def("suez", "סואז", "Suez One", "Suez+One"),
+  def("amatic", "ידני", "Amatic SC", "Amatic+SC:wght@400;700"),
+  def("fredoka", "פרדוקה", "Fredoka", "Fredoka:wght@400;600;700"),
+  def("openSans", "אופן", "Open Sans", "Open+Sans:wght@400;600;700"),
+  def("playpen", "שעשועי", "Playpen Sans", "Playpen+Sans:wght@400;600;700"),
+  def("handjet", "מודרני", "Handjet", "Handjet:wght@400;600;700"),
+  serif("bonaNova", "בונה", "Bona Nova", "Bona+Nova:wght@400;700"),
+  def("cousine", "מכונה", "Cousine", "Cousine:wght@400;700"),
 ]
 
 export const SIZES: { id: LetterSize; name: string; fontSize: string; lineHeight: string }[] = [

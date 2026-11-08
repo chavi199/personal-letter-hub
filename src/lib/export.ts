@@ -17,6 +17,7 @@ import {
   type LetterFont,
   type LetterSize,
 } from "./design-themes"
+import { letterFontFamilyName } from "./letter-fonts"
 import { readLocalDesign } from "./letter-design-storage"
 import { renderLetterPdf, renderLettersPdf } from "./letter-pdf"
 import type { DbLetterVersion } from "./supabase"
@@ -59,17 +60,7 @@ function designOf(design?: LetterDesignConfig): LetterDesignConfig {
 }
 
 function wordFont(font?: LetterFont): string {
-  if (font === "heebo") return "Heebo"
-  if (font === "assistant") return "Assistant"
-  if (font === "frank") return "Frank Ruhl Libre"
-  if (font === "secular") return "Secular One"
-  if (font === "alef") return "Alef"
-  if (font === "david") return "David Libre"
-  if (font === "miriam") return "Miriam Libre"
-  if (font === "varela") return "Varela Round"
-  if (font === "bellefair") return "Bellefair"
-  if (font === "karantina") return "Karantina"
-  return "Rubik"
+  return letterFontFamilyName(font)
 }
 
 function wordSize(size?: LetterSize): number {

@@ -1,5 +1,6 @@
 import { LetterDecor } from "@/components/letter-decor"
 import { LivingLetterPaper } from "@/components/living-letter-paper"
+import { useLetterFont } from "@/hooks/use-letter-font"
 import {
   fontStack,
   getDesignBorderStyle,
@@ -18,6 +19,7 @@ type Props = {
 export function SharedLetterView({ recipientName, content, designConfig }: Props) {
   const design = hasLetterDesign(designConfig) ? normalizeDesign(designConfig) : normalizeDesign()
   const size = sizeStyle(design.fontSize)
+  useLetterFont(design.fontFamily)
 
   return (
     <LivingLetterPaper

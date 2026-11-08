@@ -122,7 +122,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Assistant:wght@400;600;700&family=Bellefair&family=David+Libre:wght@400;700&family=Frank+Ruhl+Libre:wght@400;700&family=Heebo:wght@400;600;700&family=Karantina:wght@400;700&family=Miriam+Libre:wght@400;700&family=Rubik:wght@400;500;600;700&family=Secular+One&family=Varela+Round&display=swap",
+        // App chrome only — letter fonts load on demand via ensureLetterFont().
+        href: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap",
       },
       {
         rel: "stylesheet",

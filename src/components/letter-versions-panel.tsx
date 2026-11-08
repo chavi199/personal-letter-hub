@@ -26,6 +26,7 @@ import {
   themeLabel,
   type LetterDesignConfig,
 } from "@/lib/design-themes"
+import { useLetterFont } from "@/hooks/use-letter-font"
 
 interface Props {
   open: boolean
@@ -387,6 +388,7 @@ function VersionPreview({
 }) {
   const design = hasLetterDesign(version.design_config) ? normalizeDesign(version.design_config) : null
   const [name, setName] = useState(version.design_config?.label ?? "")
+  useLetterFont(design?.fontFamily)
 
   return (
     <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
